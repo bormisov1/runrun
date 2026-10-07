@@ -23,6 +23,8 @@ jobs:
           EXPO_STATE_JSON: ${{ secrets.EXPO_STATE_JSON }}
       - name: Build signed IPA
         run: eas build --platform ios --profile production --local --non-interactive --output ./runrun.ipa
+        env:
+          ENTERPRISE_REPOSITORY: https://repo.maven.apache.org/maven2
       - uses: actions/upload-artifact@v4
         with:
           name: runrun-ipa
