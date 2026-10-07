@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="210" fill="#070A0E"/>
+  <path d="M124 697h776" stroke="#D8FF3E" stroke-width="20" stroke-linecap="square"/>
+  <g transform="translate(116 558) skewX(-11)">
+    <text x="0" y="0" fill="#F5F7F0" font-family="DejaVu Sans" font-size="150" font-weight="900" letter-spacing="-13">RUNRUN</text>
+  </g>
+  <circle cx="878" cy="546" r="21" fill="#D8FF3E"/>
+  <text x="127" y="767" fill="#8E9A9A" font-family="DejaVu Sans" font-size="31" font-weight="700" letter-spacing="13">MOVE DIFFERENT</text>
+</svg>

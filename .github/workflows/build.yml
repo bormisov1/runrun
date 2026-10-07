@@ -1,0 +1,29 @@
+name: Build RUNRUN iOS locally
+on:
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm install -g eas-cli@18.3.0
+      - name: Restore Expo login
+        run: |
+          mkdir -p "$HOME/.expo"
+          printf '%s' "$EXPO_STATE_JSON" > "$HOME/.expo/state.json"
+          chmod 600 "$HOME/.expo/state.json"
+        env:
+          EXPO_STATE_JSON: ${{ secrets.EXPO_STATE_JSON }}
+      - name: Build signed IPA
+        run: eas build --platform ios --profile production --local --non-interactive --output ./runrun.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runrun-ipa
+          path: runrun.ipa
+          if-no-files-found: error
