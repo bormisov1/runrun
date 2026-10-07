@@ -1,7 +1,7 @@
 import type * as Location from 'expo-location';
 
 export type Point = { latitude: number; longitude: number; altitude: number | null; timestamp: number; accuracy: number | null; speed: number | null };
-export type Run = { id: string; startedAt: number; endedAt?: number; points: Point[] };
+export type Run = { id: string; startedAt: number; endedAt?: number; points: Point[]; source?: { startedAt: number; endedAt: number; points: Point[] } };
 export type Stats = { distance: number; seconds: number; avgSpeed: number; currentSpeed: number; maxSpeed: number; ascent: number; descent: number; minAltitude: number | null; maxAltitude: number | null };
 
 export function fromLocation(location: Location.LocationObject): Point {
@@ -218,12 +218,50 @@ export function achievements(runs: Run[]): Achievement[] {
   return awards;
 }
 
-export function routePath(points: Point[], width: number, height: number, padding = 18): string {
+export function routePath(points: Point[], width: number, height: number, padding = 18, bounds = points): string {
   if (!points.length) return '';
+  const referenceXs = bounds.map(p => p.longitude * Math.cos(p.latitude * Math.PI / 180));
+  const referenceYs = bounds.map(p => p.latitude);
   const xs = points.map(p => p.longitude * Math.cos(p.latitude * Math.PI / 180));
   const ys = points.map(p => p.latitude);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const minX = Math.min(...referenceXs), maxX = Math.max(...referenceXs), minY = Math.min(...referenceYs), maxY = Math.max(...referenceYs);
   const scale = Math.min((width - 2 * padding) / Math.max(maxX - minX, 0.0001), (height - 2 * padding) / Math.max(maxY - minY, 0.0001));
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
   return points.map((_, i) => `${i ? 'L' : 'M'}${(width / 2 + (xs[i] - cx) * scale).toFixed(1)} ${(height / 2 - (ys[i] - cy) * scale).toFixed(1)}`).join(' ');
+}
+
+export function originalRun(run: Run): Run {
+  return run.source ? { id: run.id, ...run.source } : run;
+}
+
+export function pointAt(points: Point[], time: number): Point | null {
+  if (!points.length) return null;
+  if (time <= points[0].timestamp) return points[0];
+  if (time >= points[points.length - 1].timestamp) return points[points.length - 1];
+  let lo = 0, hi = points.length - 1;
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (points[mid].timestamp <= time) lo = mid; else hi = mid;
+  }
+  const a = points[lo], b = points[hi];
+  const fraction = (time - a.timestamp) / (b.timestamp - a.timestamp);
+  const between = (x: number | null, y: number | null) => x == null || y == null ? null : x + (y - x) * fraction;
+  return { latitude: a.latitude + (b.latitude - a.latitude) * fraction,
+    longitude: a.longitude + (b.longitude - a.longitude) * fraction,
+    altitude: between(a.altitude, b.altitude), accuracy: between(a.accuracy, b.accuracy),
+    speed: between(a.speed, b.speed), timestamp: time };
+}
+
+export function cropRun(run: Run, start: number, end: number): Run {
+  const original = originalRun(run);
+  const finish = original.endedAt ?? Date.now();
+  const from = Math.max(original.startedAt, Math.min(start, finish));
+  const to = Math.max(from, Math.min(end, finish));
+  const points = original.points.filter(p => p.timestamp >= from && p.timestamp <= to);
+  const first = pointAt(original.points, from);
+  const last = pointAt(original.points, to);
+  if (first && first.timestamp >= from && first.timestamp <= to && points[0]?.timestamp !== first.timestamp) points.unshift(first);
+  if (last && last.timestamp >= from && last.timestamp <= to && points.at(-1)?.timestamp !== last.timestamp) points.push(last);
+  return { id: run.id, startedAt: from, endedAt: to, points,
+    source: { startedAt: original.startedAt, endedAt: finish, points: original.points } };
 }

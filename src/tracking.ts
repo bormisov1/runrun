@@ -23,6 +23,10 @@ export async function saveRun(run: Run) {
   const history = await getHistory();
   await AsyncStorage.setItem(HISTORY, JSON.stringify([run, ...history]));
 }
+export async function updateRun(run: Run) {
+  const history = await getHistory();
+  await AsyncStorage.setItem(HISTORY, JSON.stringify(history.map(item => item.id === run.id ? run : item)));
+}
 export async function addLocations(locations: Location.LocationObject[]) {
   let run = await getActive();
   if (!run) return;

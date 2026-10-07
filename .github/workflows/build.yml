@@ -1,32 +1,104 @@
-name: Build RUNRUN iOS locally
+name: RUNRUN iOS TestFlight
+
 on:
-  workflow_dispatch:
   push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runrun-ios-testflight
+  queue: max
+  cancel-in-progress: false
+
 jobs:
+  credentials:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Apple signing secrets before reserving a Mac runner
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          missing=0
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_P8; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub Actions secret $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
   ios:
-    runs-on: macos-latest
+    needs: credentials
+    runs-on: macos-26
     timeout-minutes: 120
+    env:
+      CI: '1'
+      ENTERPRISE_REPOSITORY: https://repo.maven.apache.org/maven2
+      APPLE_TEAM_ID: 6668YNMX76
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
-      - run: npm ci
-      - run: npm install -g eas-cli@18.3.0
-      - name: Restore Expo login
+      - name: Install dependencies and check the app
         run: |
-          mkdir -p "$HOME/.expo"
-          printf '%s' "$EXPO_STATE_JSON" > "$HOME/.expo/state.json"
-          chmod 600 "$HOME/.expo/state.json"
+          npm ci
+          npm test
+          npm run typecheck
+      - name: Set a unique App Store build number
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          config.expo.ios.buildNumber = String(10000 + Number(process.env.GITHUB_RUN_NUMBER));
+          fs.writeFileSync('app.json', JSON.stringify(config, null, 2) + '\n');
+          NODE
+      - name: Generate the native iOS project
+        run: npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods
+        run: pod install --project-directory=ios
+      - name: Install Apple API key
         env:
-          EXPO_STATE_JSON: ${{ secrets.EXPO_STATE_JSON }}
-      - name: Build signed IPA
-        run: eas build --platform ios --profile production --local --non-interactive --output ./runrun.ipa
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_API_KEY_P8" > "$key_path"
+          chmod 600 "$key_path"
+          echo "ASC_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+      - name: Archive signed app
         env:
-          ENTERPRISE_REPOSITORY: https://repo.maven.apache.org/maven2
-      - uses: actions/upload-artifact@v4
-        with:
-          name: runrun-ipa
-          path: runrun.ipa
-          if-no-files-found: error
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild archive \
+            -workspace ios/RUNRUN.xcworkspace \
+            -scheme RUNRUN \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/RUNRUN.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/RUNRUN.xcarchive" \
+            -exportPath "$RUNNER_TEMP/RUNRUN-export" \
+            -exportOptionsPlist .github/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"

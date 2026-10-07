@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appendPoint, achievements, meters, routePath, Run, stats } from './run';
+import { appendPoint, achievements, cropRun, meters, originalRun, pointAt, routePath, Run, stats } from './run';
 
 const point = (latitude: number, longitude: number, timestamp: number, altitude = 0) => ({ latitude, longitude, timestamp, altitude, accuracy: 5, speed: null });
 
@@ -13,6 +13,20 @@ test('distance, average speed, and elevation gain use recorded coordinates', () 
   assert.equal(result.ascent, 10);
   assert.equal(result.seconds, 300);
   assert.ok(routePath(run.points, 320, 220).startsWith('M'));
+});
+
+test('cropping interpolates GPS boundaries and recalculates run statistics', () => {
+  const points = [0, 10, 20].map((seconds): Run['points'][number] => ({
+    latitude: 0, longitude: seconds / 10000, altitude: seconds, timestamp: seconds * 1000,
+    accuracy: 5, speed: null,
+  }));
+  const run: Run = { id: 'crop', startedAt: 0, endedAt: 20000, points };
+  const cropped = cropRun(run, 5000, 15000);
+  assert.deepEqual(cropped.points.map(p => p.timestamp), [5000, 10000, 15000]);
+  assert.equal(pointAt(points, 5000)?.longitude, 0.0005);
+  assert.equal(stats(cropped).seconds, 10);
+  assert.ok(Math.abs(stats(cropped).distance - meters(points[0], points[2]) / 2) < 0.01);
+  assert.deepEqual(originalRun(cropRun(cropped, 0, 20000)).points, points);
 });
 
 test('bad GPS accuracy and impossible jumps are excluded', () => {
