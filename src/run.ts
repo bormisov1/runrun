@@ -18,12 +18,43 @@ export function meters(a: Point, b: Point): number {
 }
 
 export function appendPoint(run: Run, point: Point): Run {
-  if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude) || (point.accuracy ?? 0) > 65) return run;
+  // Core Location reports an uncertainty radius; weak fixes make both the route
+  // and accumulated distance worse, even when their coordinates look plausible.
+  const accuracy = point.accuracy ?? 15;
+  if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude) ||
+      Math.abs(point.latitude) > 90 || Math.abs(point.longitude) > 180 ||
+      !Number.isFinite(point.timestamp) || point.timestamp < run.startedAt - 5000 ||
+      !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 35) return run;
   const last = run.points.at(-1);
   if (last) {
     const dt = (point.timestamp - last.timestamp) / 1000;
     const distance = meters(last, point);
-    if (dt <= 0 || distance < 3 || distance / dt > 12.5) return run;
+    if (dt <= 0 || distance / dt > 8.5) return run;
+    const speed = point.speed != null && point.speed >= 0 && Number.isFinite(point.speed) ? point.speed : null;
+    const uncertainty = Math.max(accuracy, last.accuracy ?? 15);
+    // A stationary phone can wander several metres inside its accuracy radius.
+    if (speed != null && speed < 0.7 && distance < Math.max(15, uncertainty * 2)) return run;
+    if (speed == null && distance < Math.max(5, uncertainty * 0.8)) return run;
+    if (distance < 3) return run;
+
+    // Smooth ordinary fixes, but follow a sustained change in direction quickly.
+    // This avoids shaving corners while reducing the side-to-side GPS zigzag.
+    const previous = run.points.at(-2);
+    let gain = Math.max(0.5, Math.min(0.85, (distance + 5) / (distance + accuracy + 5)));
+    if (previous) {
+      const eastScale = Math.cos(last.latitude * Math.PI / 180);
+      const ax = (last.longitude - previous.longitude) * eastScale;
+      const ay = last.latitude - previous.latitude;
+      const bx = (point.longitude - last.longitude) * eastScale;
+      const by = point.latitude - last.latitude;
+      const lengths = Math.hypot(ax, ay) * Math.hypot(bx, by);
+      const turn = lengths > 0 ? (ax * bx + ay * by) / lengths : 1;
+      if (turn < 0.7 && distance > accuracy * 1.5 && meters(previous, last) > accuracy * 1.5) gain = 0.9;
+    }
+    if (dt > 30) gain = 1;
+    point = { ...point,
+      latitude: last.latitude + (point.latitude - last.latitude) * gain,
+      longitude: last.longitude + (point.longitude - last.longitude) * gain };
   }
   return { ...run, points: [...run.points, point] };
 }
