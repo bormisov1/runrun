@@ -294,8 +294,9 @@ function Main() {
     try {
       watch.current?.remove(); watch.current = null; await stopTracking();
       const run = await getActive();
-      if (run && !discard) { const done = { ...run, endedAt: Date.now() }; await saveRun(done); setHistory(await getHistory()); openRun(done); }
+      if (run && !discard) { const done = { ...run, endedAt: Date.now() }; await saveRun(done); setHistory(await getHistory()); }
       await setActive(null); setActiveRun(null); setStopDialog(false); setTrackingMode(null);
+      if (!discard && run) setTab('HISTORY');
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not finish run'); } finally { setBusy(false); }
   }
   async function share(run: Run, save = false) {
