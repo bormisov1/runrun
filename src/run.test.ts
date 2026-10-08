@@ -39,6 +39,31 @@ test('bad GPS accuracy and impossible jumps are excluded', () => {
   assert.ok(meters(point(0, 0, 0), point(0, 1, 1000)) > 100_000);
 });
 
+test('stationary GPS wander does not add route points or distance', () => {
+  let run: Run = { id: 'still', startedAt: 0, points: [] };
+  const origin = { ...point(13, 100, 0), speed: 0, accuracy: 8 };
+  run = appendPoint(run, origin);
+  for (let i = 1; i <= 40; i++) {
+    const drift = (i % 2 ? 1 : -1) * 0.00005;
+    run = appendPoint(run, { ...origin, latitude: 13 + drift, longitude: 100 - drift, timestamp: i * 1000 });
+  }
+  assert.equal(run.points.length, 1);
+  assert.equal(stats(run).distance, 0);
+});
+
+test('running fixes are smoothed without cutting a clear turn', () => {
+  let run: Run = { id: 'turn', startedAt: 0, points: [] };
+  const fixes = [
+    [0, 0], [0, 0.00009], [0, 0.00018], [0.00009, 0.00018], [0.00018, 0.00018],
+  ];
+  fixes.forEach(([latitude, longitude], i) => {
+    run = appendPoint(run, { ...point(latitude, longitude, i * 3000), speed: 3 });
+  });
+  assert.equal(run.points.length, fixes.length);
+  assert.ok(run.points[3].latitude > 0.000075, 'turn follows the northward fix promptly');
+  assert.ok(run.points[3].longitude > 0.00016, 'turn remains near the actual corner');
+});
+
 test('achievement progress remains bounded', () => {
   const run: Run = { id: 'three', startedAt: 0, endedAt: 5000, points: [] };
   const awards = achievements([run]);
