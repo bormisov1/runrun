@@ -13,6 +13,7 @@
 - Ads: No
 - In-app purchases: No
 - Android package in the AAB: `com.bormisov.runrun`
+- Health apps declaration: Health and fitness → Activity and Fitness
 
 Choose the target age groups and answer the content rating questionnaire according
 to the intended audience. These are account-owner declarations, not app defaults.
@@ -73,3 +74,13 @@ Google requires a short **Android device recording** showing Start Run, the
 in-app location disclosure, the runtime permission flow, a run continuing with
 the app in the background, and Stop Run. Supply that video in the location and
 foreground-service declarations when Play Console requests it.
+
+## Data safety notes
+
+RUNRUN's own code keeps routes and run history on the device. It has no account,
+developer server, analytics, or advertising SDK. Exporting a route or photo to
+another app requires a specific user action. Google's Data safety definition
+does not count data processed only on-device as collected, and exempts sharing
+that the user specifically initiates and expects. Check the final Android bundle
+and all included SDK behavior before submitting the form; the account owner is
+responsible for its accuracy.

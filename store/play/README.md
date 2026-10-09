@@ -24,7 +24,8 @@ any app UI changes.
 2. Enter <https://bormisov.com/runrun/privacy.html> as the privacy policy URL
    in Play Console. It serves `public/privacy.html` from the VPS. Republish the
    page after any policy change and confirm it still matches the app.
-3. Complete the app content and Data safety forms based on the actual release.
+3. Complete the app content, Health apps (Activity and Fitness), and Data safety
+   forms based on the actual release.
    RUNRUN has no account or developer server; location and run history remain on
    device. User-chosen exports go to the destination they select.
 4. Declare background location and the location foreground service. They record
@@ -54,4 +55,7 @@ the release. Browser captures do not verify native Android behavior.
 Relevant references: [Expo EAS configuration](https://docs.expo.dev/eas/json/),
 [Play listing asset requirements](https://support.google.com/googleplay/android-developer/answer/9866151),
 [background location policy](https://support.google.com/googleplay/android-developer/answer/9799150),
+[foreground-service declaration](https://support.google.com/googleplay/android-developer/answer/13392821),
+[health apps declaration](https://support.google.com/googleplay/android-developer/answer/14738291),
+[Data safety definitions](https://support.google.com/googleplay/android-developer/answer/10787469),
 and [privacy policy requirements](https://support.google.com/googleplay/android-developer/answer/9859455).
