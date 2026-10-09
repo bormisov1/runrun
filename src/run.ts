@@ -88,7 +88,12 @@ export function stats(run: Run, now = Date.now()): Stats {
 }
 
 export const km = (m: number) => (m / 1000).toFixed(2);
-export const kph = (ms: number) => (ms * 3.6).toFixed(1);
+export function paceSeconds(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '--:--';
+  const rounded = Math.round(seconds);
+  return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`;
+}
+export const pace = (metersPerSecond: number) => paceSeconds(1000 / metersPerSecond);
 export function clock(seconds: number) {
   const s = Math.floor(seconds);
   return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
