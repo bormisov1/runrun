@@ -9,7 +9,7 @@ the internal testing track.
 - `play-icon-512.png`: Play listing icon.
 - `feature-graphic-1024x500.png`: feature graphic.
 - `screenshot-01-dashboard.png`, `screenshot-02-history.png`, and
-  `screenshot-03-awards.png`: 824 × 1830 captures of the real web app at a phone
+  `screenshot-03-awards.png`: 900 × 1600 captures of the real web app at a phone
   viewport. A synthetic sample run was stored locally in the browser for these
   captures. Verify the screens against a production Android build before upload.
 
