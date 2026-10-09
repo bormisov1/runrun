@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appendPoint, achievements, cropRun, meters, originalRun, pointAt, pointsBetween, routePath, Run, stats } from './run';
+import { appendPoint, achievements, cropRun, meters, originalRun, pace, paceSeconds, pointAt, pointsBetween, routePath, Run, stats } from './run';
 
 const point = (latitude: number, longitude: number, timestamp: number, altitude = 0) => ({ latitude, longitude, timestamp, altitude, accuracy: 5, speed: null });
 
@@ -13,6 +13,13 @@ test('distance, average speed, and elevation gain use recorded coordinates', () 
   assert.equal(result.ascent, 10);
   assert.equal(result.seconds, 300);
   assert.ok(routePath(run.points, 320, 220).startsWith('M'));
+});
+
+test('pace formatting converts running speed to minutes per kilometre', () => {
+  assert.equal(pace(3), '5:33');
+  assert.equal(pace(2.5), '6:40');
+  assert.equal(pace(0), '--:--');
+  assert.equal(paceSeconds(359.8), '6:00');
 });
 
 test('cropping interpolates GPS boundaries and recalculates run statistics', () => {
