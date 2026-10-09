@@ -25,13 +25,9 @@ public class RunrunMediaModule: Module {
         image.draw(in: CGRect(origin: .zero, size: image.size))
         let unit = max(1, min(image.size.width, image.size.height) / 600)
         let inset = 20 * unit
-        let height = 46 * unit
-        let width = 205 * unit
-        let box = CGRect(x: inset, y: image.size.height - inset - height, width: width, height: height)
-        UIColor.black.withAlphaComponent(0.6).setFill()
-        UIBezierPath(roundedRect: box, cornerRadius: 7 * unit).fill()
-        logo.draw(in: CGRect(x: box.minX + 10 * unit, y: box.minY + 8 * unit,
-                             width: box.width - 20 * unit, height: box.height - 16 * unit))
+        let logoSize = self.logoSize(for: image.size, logo: logo)
+        logo.draw(in: CGRect(x: inset, y: image.size.height - inset - logoSize.height,
+                             width: logoSize.width, height: logoSize.height))
       }
       guard let data = branded.jpegData(compressionQuality: 0.95) else {
         promise.reject("E_EXPORT", "Could not render branded photo")
@@ -141,14 +137,10 @@ public class RunrunMediaModule: Module {
         parent.frame = CGRect(origin: .zero, size: size)
         parent.addSublayer(videoLayer)
         let unit = max(1, min(size.width, size.height) / 600)
-        let box = CGRect(x: 20 * unit, y: 20 * unit, width: 205 * unit, height: 46 * unit)
-        let backing = CALayer()
-        backing.frame = box
-        backing.cornerRadius = 7 * unit
-        backing.backgroundColor = UIColor.black.withAlphaComponent(0.6).cgColor
-        parent.addSublayer(backing)
+        let logoSize = self.logoSize(for: size, logo: logo)
         let watermark = CALayer()
-        watermark.frame = box.insetBy(dx: 10 * unit, dy: 8 * unit)
+        watermark.frame = CGRect(x: 20 * unit, y: 20 * unit,
+                                 width: logoSize.width, height: logoSize.height)
         watermark.contents = logoCG
         watermark.contentsGravity = .resizeAspect
         parent.addSublayer(watermark)
@@ -170,6 +162,12 @@ public class RunrunMediaModule: Module {
         promise.reject("E_EXPORT", error.localizedDescription)
       }
     }
+  }
+
+  private func logoSize(for canvas: CGSize, logo: UIImage) -> CGSize {
+    let unit = max(1, min(canvas.width, canvas.height) / 600)
+    let width = 220 * unit
+    return CGSize(width: width, height: width * logo.size.height / logo.size.width)
   }
 
   private func logoImage() -> UIImage? {
