@@ -15,6 +15,7 @@
       }
     },
     "android": {
+      "package": "com.bormisov.runrun",
       "adaptiveIcon": {
         "backgroundColor": "#070A0E",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,13 +30,14 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -63,7 +65,16 @@
       [
         "expo-media-library",
         {
-          "savePhotosPermission": "RUNRUN saves your branded run photos and videos."
+          "savePhotosPermission": "RUNRUN saves your run photos and videos.",
+          "granularPermissions": []
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#070A0E",
+          "image": "./assets/splash-mark.png",
+          "imageWidth": 220
         }
       ],
       "expo-sharing",

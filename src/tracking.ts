@@ -40,11 +40,11 @@ TaskManager.defineTask(TASK, async ({ data, error }) => {
   if (locations?.length) await addLocations(locations);
 });
 
-export async function startTracking(): Promise<'background' | 'foreground'> {
+export async function startTracking(allowBackground = true): Promise<'background' | 'foreground'> {
   const foreground = await Location.requestForegroundPermissionsAsync();
   if (!foreground.granted) throw new Error('Location permission is needed to record a run.');
   let backgroundGranted = false;
-  try { backgroundGranted = (await Location.requestBackgroundPermissionsAsync()).granted; }
+  try { if (allowBackground) backgroundGranted = (await Location.requestBackgroundPermissionsAsync()).granted; }
   catch { /* Expo Go can only use foreground tracking. */ }
   if (backgroundGranted) {
     try {

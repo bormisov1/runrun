@@ -3,7 +3,7 @@
   "build": {
     "simulator": { "distribution": "internal", "ios": { "simulator": true } },
     "preview": { "distribution": "internal", "ios": { "simulator": false } },
-    "production": { "autoIncrement": true }
+    "production": { "autoIncrement": true, "android": { "buildType": "app-bundle" } }
   },
-  "submit": { "production": { "ios": { "ascAppId": "6819980672" } } }
+  "submit": { "production": { "ios": { "ascAppId": "6819980672" }, "android": { "serviceAccountKeyPath": "./play-store/service-account.json", "track": "internal" } } }
 }

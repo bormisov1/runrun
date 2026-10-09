@@ -1,5 +1,7 @@
 # RUNRUN
 
+Android Google Play build and submission notes: [store/play/README.md](store/play/README.md).
+
 Dark running tracker built with Expo / React Native.
 
 ## Run locally

@@ -165,9 +165,9 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
         if (result?.uri && !interruptedRef.current && session === sessionRef.current) {
           setBusy(true);
           try {
-            const uri = await brandVideo(result.uri);
+            const uri = Platform.OS === 'ios' ? await brandVideo(result.uri) : result.uri;
             await saveMedia(uri);
-            if (session === sessionRef.current) Alert.alert('Saved', 'Branded video is in Photos.');
+            if (session === sessionRef.current) Alert.alert('Saved', Platform.OS === 'ios' ? 'Branded video is in Photos.' : 'Video is in Photos.');
           } catch (e) { if (session === sessionRef.current) Alert.alert('Could not save video', e instanceof Error ? e.message : 'Could not save video.'); }
           finally { if (session === sessionRef.current) setBusy(false); }
         }
@@ -232,7 +232,7 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
           </> : <View style={st.cameraEmpty}/>}
         <Pressable accessibilityRole="button" accessibilityLabel="Close camera" hitSlop={8} onPress={closeCamera} style={st.cameraClose}><Icon name="close" size={26}/></Pressable>
       </View>
-      <Text style={st.cameraNote}>{mode === 'video' ? `${micPermission?.granted ? 'Microphone audio is recorded.' : 'Enable microphone access to record audio.'} Saved videos include the RUNRUN logo.` : 'Saved photos include the RUNRUN logo.'}</Text>
+      <Text style={st.cameraNote}>{mode === 'video' ? `${micPermission?.granted ? 'Microphone audio is recorded.' : 'Enable microphone access to record audio.'}${Platform.OS === 'ios' ? ' Saved videos include the RUNRUN logo.' : ''}` : 'Saved photos include the RUNRUN logo.'}</Text>
       {photo ? <View style={st.cameraActions}><Pressable onPress={() => setPhoto(null)}><Text style={st.cameraAction}>RETAKE</Text></Pressable><Pressable onPress={() => outputPhoto(false)}><Text style={st.cameraAction}>SAVE</Text></Pressable><Pressable onPress={() => outputPhoto(true)}><Text style={st.cameraAction}>SHARE</Text></Pressable></View>
         : <><View style={st.modeRow}><Pressable onPress={() => changeMode('picture')}><Text style={[st.modeText, mode === 'picture' && { color: c.lime }]}>PHOTO</Text></Pressable><Pressable onPress={() => changeMode('video')}><Text style={[st.modeText, mode === 'video' && { color: c.lime }]}>VIDEO</Text></Pressable></View>
           <View style={st.cameraControls}><Pressable disabled={busy || (!recording && !cameraReady)} onPress={shoot} style={[st.shutter, recording && { borderColor: c.red }]}><View style={[st.shutterInner, recording && { backgroundColor: c.red, borderRadius: 6, width: 27, height: 27 }]}/></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Switch camera" disabled={busy || recording || !cameraPermission?.granted} onPress={() => { cameraGenerationRef.current += 1; setCameraReady(false); setLenses([]); setSelectedLens(undefined); setFocus(null); setFacing(current => current === 'back' ? 'front' : 'back'); }} style={[st.flipCamera, (busy || recording) && { opacity: 0.45 }]}><Icon name="camera-reverse-outline" size={25}/></Pressable></View></>}
@@ -280,11 +280,24 @@ function Main() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save crop'); }
   }
   async function start() {
+    const allowBackground = Platform.OS === 'android' ? await new Promise<boolean | null>(resolve => {
+      Alert.alert(
+        'Location during a run',
+        'RUNRUN collects location data to record your route, distance and speed during an active run, even when the app is closed or not in use. Your routes stay on this device. Choose "Keep recording" for background tracking, or "While open" to record only while RUNRUN is open.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+          { text: 'While open', onPress: () => resolve(false) },
+          { text: 'Keep recording', onPress: () => resolve(true) },
+        ],
+        { cancelable: false },
+      );
+    }) : true;
+    if (allowBackground === null) return;
     setBusy(true); setError('');
     try {
       const run: Run = { id: String(Date.now()), startedAt: Date.now(), points: [] };
       await setActive(run);
-      const mode = await startTracking(); setTrackingMode(mode);
+      const mode = await startTracking(allowBackground); setTrackingMode(mode);
       if (mode === 'foreground') watch.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 }, async loc => addLocations([loc]));
       setActiveRun(run);
     } catch (e) { await setActive(null); setError(e instanceof Error ? e.message : 'Could not start GPS'); } finally { setBusy(false); }
