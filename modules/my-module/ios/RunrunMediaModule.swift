@@ -12,6 +12,10 @@ public class RunrunMediaModule: Module {
         promise.reject("E_INPUT", "A local photo file is required")
         return
       }
+      guard let logo = self.logoImage() else {
+        promise.reject("E_LOGO", "RUNRUN logo asset is missing")
+        return
+      }
       let scale = image.scale
       let format = UIGraphicsImageRendererFormat()
       format.scale = scale
@@ -26,12 +30,8 @@ public class RunrunMediaModule: Module {
         let box = CGRect(x: inset, y: image.size.height - inset - height, width: width, height: height)
         UIColor.black.withAlphaComponent(0.6).setFill()
         UIBezierPath(roundedRect: box, cornerRadius: 7 * unit).fill()
-        let text = NSAttributedString(string: "RUNRUN.", attributes: [
-          .font: UIFont.systemFont(ofSize: 30 * unit, weight: .black).withTraits(.traitItalic),
-          .foregroundColor: UIColor.white,
-          .kern: -1.5 * unit
-        ])
-        text.draw(at: CGPoint(x: box.minX + 10 * unit, y: box.minY + 4 * unit))
+        logo.draw(in: CGRect(x: box.minX + 10 * unit, y: box.minY + 8 * unit,
+                             width: box.width - 20 * unit, height: box.height - 16 * unit))
       }
       guard let data = branded.jpegData(compressionQuality: 0.95) else {
         promise.reject("E_EXPORT", "Could not render branded photo")
@@ -98,6 +98,10 @@ public class RunrunMediaModule: Module {
         promise.reject("E_INPUT", "A local video file is required")
         return
       }
+      guard let logo = self.logoImage(), let logoCG = logo.cgImage else {
+        promise.reject("E_LOGO", "RUNRUN logo asset is missing")
+        return
+      }
       do {
         let asset = AVURLAsset(url: input)
         guard let sourceVideo = asset.tracks(withMediaType: .video).first else {
@@ -136,19 +140,17 @@ public class RunrunMediaModule: Module {
         let parent = CALayer()
         parent.frame = CGRect(origin: .zero, size: size)
         parent.addSublayer(videoLayer)
+        let unit = max(1, min(size.width, size.height) / 600)
+        let box = CGRect(x: 20 * unit, y: 20 * unit, width: 205 * unit, height: 46 * unit)
+        let backing = CALayer()
+        backing.frame = box
+        backing.cornerRadius = 7 * unit
+        backing.backgroundColor = UIColor.black.withAlphaComponent(0.6).cgColor
+        parent.addSublayer(backing)
         let watermark = CALayer()
-        watermark.frame = CGRect(x: 28, y: 28, width: min(size.width - 56, 330), height: 80)
-        watermark.cornerRadius = 8
-        watermark.backgroundColor = UIColor.black.withAlphaComponent(0.45).cgColor
-        let word = CATextLayer()
-        word.frame = CGRect(x: 14, y: 10, width: watermark.bounds.width - 28, height: 60)
-        word.contentsScale = UIScreen.main.scale
-        word.string = NSAttributedString(string: "RUNRUN.", attributes: [
-          .font: UIFont.systemFont(ofSize: 45, weight: .black).withTraits(.traitItalic),
-          .foregroundColor: UIColor.white,
-          .kern: -2
-        ])
-        watermark.addSublayer(word)
+        watermark.frame = box.insetBy(dx: 10 * unit, dy: 8 * unit)
+        watermark.contents = logoCG
+        watermark.contentsGravity = .resizeAspect
         parent.addSublayer(watermark)
         videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parent)
 
@@ -170,6 +172,17 @@ public class RunrunMediaModule: Module {
     }
   }
 
+  private func logoImage() -> UIImage? {
+    for bundle in [Bundle(for: RunrunMediaModule.self), Bundle.main] {
+      guard let bundleURL = bundle.url(forResource: "RunrunMediaAssets", withExtension: "bundle"),
+            let resources = Bundle(url: bundleURL),
+            let imageURL = resources.url(forResource: "watermark", withExtension: "png"),
+            let image = UIImage(contentsOfFile: imageURL.path) else { continue }
+      return image
+    }
+    return nil
+  }
+
   private func activeCamera() -> (AVCaptureVideoPreviewLayer, AVCaptureDevice)? {
     let windows = UIApplication.shared.connectedScenes
       .compactMap { $0 as? UIWindowScene }
@@ -189,12 +202,5 @@ public class RunrunMediaModule: Module {
       if let result = findPreviewLayer(in: child) { return result }
     }
     return nil
-  }
-}
-
-private extension UIFont {
-  func withTraits(_ traits: UIFontDescriptor.SymbolicTraits) -> UIFont {
-    guard let descriptor = fontDescriptor.withSymbolicTraits(traits) else { return self }
-    return UIFont(descriptor: descriptor, size: pointSize)
   }
 }
