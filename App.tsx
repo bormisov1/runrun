@@ -9,7 +9,7 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
-import { clock, cropRun, km, kph, originalRun, routePath, Run, stats } from './src/run';
+import { clock, cropRun, km, pace, originalRun, routePath, Run, stats } from './src/run';
 import { addLocations, getActive, getHistory, saveRun, setActive, startTracking, stopTracking, updateRun } from './src/tracking';
 import { brandPhoto, brandVideo, focusCamera, setCameraExposure } from './src/videoBrand';
 import { c, st } from './src/styles';
@@ -267,6 +267,7 @@ function Main() {
   const original = selected ? originalRun(selected) : null;
   const draft = selected ? cropRun(selected, cropStart, cropEnd) : null;
   const draftStats = draft ? stats(draft) : null;
+  const previewTime = Math.max(cropStart, Math.min(scrubTime, cropEnd));
   function openRun(run: Run) {
     setSelected(run);
     setCropStart(run.startedAt);
@@ -321,7 +322,7 @@ function Main() {
   }
   return <SafeAreaView style={st.safe} edges={['top', 'bottom']}><StatusBar barStyle="light-content" backgroundColor={c.bg}/><View style={st.topbar}><Brand/><View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}><Pressable accessibilityRole="link" accessibilityLabel="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL).catch(() => Alert.alert('Could not open privacy policy', PRIVACY_URL))}><Text style={{ color: c.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>PRIVACY</Text></Pressable><Pressable style={st.cameraButton} onPress={() => setCameraOpen(true)}><Icon name="camera-outline"/></Pressable></View></View>
     <ScrollView contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-      {tab === 'RUN' && <><View style={st.hero}><Text style={st.kicker}>THE ROAD IS YOURS  /  001</Text><Text style={st.heroTitle}>CHASE THE<Text style={{ color: c.lime }}> NEXT</Text>{'\n'}VERSION OF YOU.</Text><Text style={st.heroSub}>Record every stride. Own every mile.</Text></View>{(active?.points.length || (!active && history[0]?.points.length)) ? (() => { const shown = active?.points.length ? active : history[0]; return <RunMap original={shown} selected={shown} time={shown.points.at(-1)!.timestamp} height={226}/>; })() : <Route run={active}/> }<View style={{ height: 24 }}/><Section kicker={active ? 'SESSION IN PROGRESS' : 'READY WHEN YOU ARE'} title={active ? 'Live activity' : 'Your dashboard'} right={<View style={st.gpsBadge}><View style={st.dot}/><Text style={st.gpsText}>{active ? trackingMode === 'background' ? 'GPS ON' : 'GPS · OPEN APP' : 'GPS READY'}</Text></View>}/>{active && current ? <><View style={st.tiles}><Tile label="DISTANCE" value={km(current.distance)} unit="KM" icon="navigate-outline" accent/><Tile label="DURATION" value={clock(current.seconds)} unit="" icon="time-outline"/><Tile label="CURRENT SPEED" value={kph(current.currentSpeed)} unit="KM/H" icon="speedometer-outline"/><Tile label="ELEVATION GAIN" value={String(Math.round(current.ascent))} unit="M" icon="trending-up-outline"/></View><View style={st.strip}><View><Label>AVG SPEED</Label><Text style={st.stripNum}>{kph(current.avgSpeed)} <Text style={st.stripUnit}>KM/H</Text></Text></View><View><Label>MAX SPEED</Label><Text style={st.stripNum}>{kph(current.maxSpeed)} <Text style={st.stripUnit}>KM/H</Text></Text></View><View><Label>DESCENT</Label><Text style={st.stripNum}>{Math.round(current.descent)} <Text style={st.stripUnit}>M</Text></Text></View></View></> : <View style={st.summary}><View><Label>TOTAL DISTANCE</Label><Text style={st.summaryNum}>{km(history.reduce((n, r) => n + stats(r).distance, 0))}<Text style={st.summaryUnit}> KM</Text></Text></View><View style={st.summaryDivider}/><View><Label>RUNS DONE</Label><Text style={st.summaryNum}>{String(history.length).padStart(2, '0')}</Text></View></View>}{!!error && <Text style={st.error}>{error}</Text>}<View style={{ height: 100 }}/></>}
+      {tab === 'RUN' && <><View style={st.hero}><Text style={st.kicker}>THE ROAD IS YOURS  /  001</Text><Text style={st.heroTitle}>CHASE THE<Text style={{ color: c.lime }}> NEXT</Text>{'\n'}VERSION OF YOU.</Text><Text style={st.heroSub}>Record every stride. Own every mile.</Text></View>{(active?.points.length || (!active && history[0]?.points.length)) ? (() => { const shown = active?.points.length ? active : history[0]; return <RunMap original={shown} selected={shown} time={shown.points.at(-1)!.timestamp} height={226}/>; })() : <Route run={active}/> }<View style={{ height: 24 }}/><Section kicker={active ? 'SESSION IN PROGRESS' : 'READY WHEN YOU ARE'} title={active ? 'Live activity' : 'Your dashboard'} right={<View style={st.gpsBadge}><View style={st.dot}/><Text style={st.gpsText}>{active ? trackingMode === 'background' ? 'GPS ON' : 'GPS · OPEN APP' : 'GPS READY'}</Text></View>}/>{active && current ? <><View style={st.tiles}><Tile label="DISTANCE" value={km(current.distance)} unit="KM" icon="navigate-outline" accent/><Tile label="DURATION" value={clock(current.seconds)} unit="" icon="time-outline"/><Tile label="CURRENT PACE" value={pace(current.currentSpeed)} unit="MIN/KM" icon="speedometer-outline"/><Tile label="ELEVATION GAIN" value={String(Math.round(current.ascent))} unit="M" icon="trending-up-outline"/></View><View style={st.strip}><View><Label>AVG PACE</Label><Text style={st.stripNum}>{pace(current.avgSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>BEST PACE</Label><Text style={st.stripNum}>{pace(current.maxSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>DESCENT</Label><Text style={st.stripNum}>{Math.round(current.descent)} <Text style={st.stripUnit}>M</Text></Text></View></View></> : <View style={st.summary}><View><Label>TOTAL DISTANCE</Label><Text style={st.summaryNum}>{km(history.reduce((n, r) => n + stats(r).distance, 0))}<Text style={st.summaryUnit}> KM</Text></Text></View><View style={st.summaryDivider}/><View><Label>RUNS DONE</Label><Text style={st.summaryNum}>{String(history.length).padStart(2, '0')}</Text></View></View>}{!!error && <Text style={st.error}>{error}</Text>}<View style={{ height: 100 }}/></>}
       {tab === 'HISTORY' && <><Section kicker="THE WORK YOU PUT IN" title="Run history"/>{history.length ? history.map((r, i) => { const x = stats(r); return <Pressable key={r.id} style={st.historyCard} onPress={() => openRun(r)}><View style={st.historyIndex}><Text style={st.historyIndexText}>{String(history.length - i).padStart(2, '0')}</Text></View><View style={{ flex: 1 }}><Text style={st.historyTitle}>{new Date(r.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()} RUN</Text><Text style={st.historyMeta}>{km(x.distance)} KM  ·  {clock(x.seconds)}  ·  +{Math.round(x.ascent)} M</Text></View><Icon name="chevron-forward" color={c.muted}/></Pressable>; }) : <View style={st.empty}><Icon name="footsteps-outline" size={44} color={c.lime}/><Text style={st.emptyTitle}>NO RUNS YET</Text><Text style={st.emptyDetail}>Start your first activity to see it here.</Text></View>}<View style={{ height: 90 }}/></>}
       {tab === 'AWARDS' && <Awards runs={history}/>}
     </ScrollView>
@@ -337,16 +338,17 @@ function Main() {
         </View>
         {selected && original && draft && draftStats && <ScrollView contentContainerStyle={st.detailContent}>
           <Text style={st.kicker}>ACTIVITY RECAP</Text><Text style={st.detailTitle}>THE RUN{'\n'}IS YOURS.</Text>
-          {original.points.length ? <RunMap original={original} selected={draft} time={scrubTime} height={280}/> : <Route run={draft} height={260}/>}
+          {original.points.length ? <RunMap original={original} selected={draft} time={previewTime} height={280}/> : <Route run={draft} height={260}/>}
           <View style={st.cropCard}>
-            <View style={st.cropRow}><Text style={st.cropTitle}>CROP YOUR RUN</Text><Text style={st.cropTime}>{clock((scrubTime - original.startedAt) / 1000)} / {clock(((original.endedAt ?? original.startedAt) - original.startedAt) / 1000)}</Text></View>
+            <View style={st.cropRow}><Text style={st.cropTitle}>CROP YOUR RUN</Text><Text style={st.cropTime}>{clock((previewTime - cropStart) / 1000)} / {clock((cropEnd - cropStart) / 1000)}</Text></View>
             <Text style={st.cropHint}>Drag the trim handles to choose a fragment. Hold a handle for precise movement.</Text>
             <RunTrimmer minimum={original.startedAt} maximum={original.endedAt ?? original.startedAt}
               start={cropStart} end={cropEnd} onStartChange={setCropStart} onEndChange={setCropEnd} onPreview={setScrubTime}/>
             <View style={st.cropRow}><Text style={st.cropBoundary}>START  {clock((cropStart - original.startedAt) / 1000)}</Text><Text style={st.cropBoundary}>FINISH  {clock((cropEnd - original.startedAt) / 1000)}</Text></View>
             <Text style={st.cropHint}>Drag the playhead to see the route fill as the run progresses.</Text>
-            <Slider accessibilityLabel="Run timeline playhead" minimumValue={original.startedAt} maximumValue={original.endedAt ?? original.startedAt + 1} value={scrubTime}
-              onValueChange={setScrubTime} minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
+            <Slider accessibilityLabel="Run timeline playhead" minimumValue={cropStart} maximumValue={Math.max(cropEnd, cropStart + 1)} value={previewTime}
+              disabled={cropEnd <= cropStart} onValueChange={value => setScrubTime(Math.max(cropStart, Math.min(value, cropEnd)))}
+              minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
             <View style={st.cropRow}>
               <Pressable onPress={() => { setCropStart(original.startedAt); setCropEnd(original.endedAt ?? original.startedAt); setScrubTime(original.startedAt); }}><Text style={st.cropReset}>RESET TO FULL RUN</Text></Pressable>
               <Pressable disabled={cropStart === selected.startedAt && cropEnd === selected.endedAt} onPress={saveCrop}><Text style={[st.cropSave, cropStart === selected.startedAt && cropEnd === selected.endedAt && { opacity: 0.4 }]}>SAVE CROP</Text></Pressable>
@@ -355,7 +357,7 @@ function Main() {
           <View style={st.tiles}>
             <Tile label="DISTANCE" value={km(draftStats.distance)} unit="KM" icon="navigate-outline" accent/>
             <Tile label="DURATION" value={clock(draftStats.seconds)} unit="" icon="time-outline"/>
-            <Tile label="AVG SPEED" value={kph(draftStats.avgSpeed)} unit="KM/H" icon="speedometer-outline"/>
+            <Tile label="AVG PACE" value={pace(draftStats.avgSpeed)} unit="MIN/KM" icon="speedometer-outline"/>
             <Tile label="ELEVATION GAIN" value={String(Math.round(draftStats.ascent))} unit="M" icon="trending-up-outline"/>
           </View>
           <Trends run={draft}/>
@@ -366,7 +368,7 @@ function Main() {
       </SafeAreaView></SafeAreaProvider>
     </Modal>
     <Camera visible={cameraOpen} onClose={() => setCameraOpen(false)} onError={setError}/>
-    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={st.shareCanvas}><Brand size={43}/><Text style={st.shareKicker}>RUN DATA / {new Date(shareRun.startedAt).toLocaleDateString()}</Text><Route run={shareRun} height={260} transparent/><View style={st.shareGrid}>{[['DURATION', clock(stats(shareRun).seconds)], ['DISTANCE', km(stats(shareRun).distance) + ' KM'], ['AVG SPEED', kph(stats(shareRun).avgSpeed) + ' KM/H'], ['ELEVATION GAIN', '+' + Math.round(stats(shareRun).ascent) + ' M']].map(([key, value]) => <View key={key} style={st.shareItem}><Text style={st.shareLabel}>{key}</Text><Text style={st.shareValue}>{value}</Text></View>)}</View><Text style={st.shareFoot}>MOVE DIFFERENT.  /  RUNRUN</Text></View></View>}
+    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={st.shareCanvas}><Brand size={43}/><Text style={st.shareKicker}>RUN DATA / {new Date(shareRun.startedAt).toLocaleDateString()}</Text><Route run={shareRun} height={260} transparent/><View style={st.shareGrid}>{[['DURATION', clock(stats(shareRun).seconds)], ['DISTANCE', km(stats(shareRun).distance) + ' KM'], ['AVG PACE', pace(stats(shareRun).avgSpeed) + ' MIN/KM'], ['ELEVATION GAIN', '+' + Math.round(stats(shareRun).ascent) + ' M']].map(([key, value]) => <View key={key} style={st.shareItem}><Text style={st.shareLabel}>{key}</Text><Text style={st.shareValue}>{value}</Text></View>)}</View><Text style={st.shareFoot}>MOVE DIFFERENT.  /  RUNRUN</Text></View></View>}
   </SafeAreaView>;
 }
 
