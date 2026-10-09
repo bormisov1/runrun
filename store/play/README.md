@@ -20,20 +20,22 @@ any app UI changes.
 ## Play Console setup
 
 1. Create the app in Play Console with package name `com.bormisov.runrun`.
+   [listing.md](listing.md) contains ready-to-paste listing text and declarations.
 2. Enter <https://bormisov.com/runrun/privacy.html> as the privacy policy URL
    in Play Console. It serves `public/privacy.html` from the VPS. Republish the
    page after any policy change and confirm it still matches the app.
 3. Complete the app content and Data safety forms based on the actual release.
    RUNRUN has no account or developer server; location and run history remain on
    device. User-chosen exports go to the destination they select.
-4. Declare background location. It records a route during an active run while
+4. Declare background location and the location foreground service. They record
+   a route during an active run while
    the app is closed or the screen is locked. Show Play the in-app disclosure
    displayed before the location permission request, and provide a short demo
    video of starting and finishing a background run.
 5. Upload the icon, feature graphic, and at least two screenshots. Review the
    listing on a real device. Provide release notes and complete the content rating
    and target audience questionnaires.
-6. For automated upload, place the Google Play service account JSON at
+6. For automated uploads after the account is configured, place the Google Play service account JSON at
    `play-store/service-account.json` in the repo root. This path is git-ignored.
    Give that account the required Play Console release permission.
 
@@ -44,8 +46,8 @@ eas build --platform android --profile production
 eas submit --platform android --profile production --latest
 ```
 
-If the service account is unavailable, download the AAB from the EAS build page
-and upload it manually to Internal testing. Test background GPS, camera/video
+For the first release, download the AAB from the EAS build page and upload it
+manually to Internal testing. A service account is optional. Test background GPS, camera/video
 saving, route exports, and permission denial on an Android device before promoting
 the release. Browser captures do not verify native Android behavior.
 
