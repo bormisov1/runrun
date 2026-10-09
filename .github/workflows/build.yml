@@ -102,3 +102,11 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Record submitted build
+        run: |
+          {
+            echo "### TestFlight upload accepted"
+            echo "Source commit: \`$GITHUB_SHA\`"
+            echo "iOS build number: \`$((10000 + GITHUB_RUN_NUMBER))\`"
+            echo "The App Store Connect upload completed in the preceding step."
+          } >> "$GITHUB_STEP_SUMMARY"
