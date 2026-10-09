@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Point, Run, pointAt, routePath } from './run';
+import { Point, Run, pointAt, pointsBetween, routePath } from './run';
 import { c } from './styles';
 
 type Props = { original: Run; selected: Run; time: number; height?: number };
@@ -23,13 +23,14 @@ function regionFor(points: Point[]) {
 export function RunMap({ original, selected, time, height = 260 }: Props) {
   if (!original.points.length) return <View style={{ height, backgroundColor: c.panel, borderRadius: 20 }} />;
   const position = pointAt(original.points, time);
+  const progress = pointsBetween(original.points, selected.startedAt, Math.min(time, selected.endedAt ?? time));
   if (!maps) {
     const full = routePath(original.points, 320, height, 24);
-    const selectedPath = routePath(selected.points, 320, height, 24, original.points);
+    const progressPath = routePath(progress, 320, height, 24, original.points);
     const dot = position && routePath([position], 320, height, 24, original.points).match(/M([\d.]+) ([\d.]+)/);
     return <View style={{ height, borderRadius: 20, overflow: 'hidden', backgroundColor: c.panel }}><Svg width="100%" height={height} viewBox={`0 0 320 ${height}`}>
       <Path d={full} stroke={c.muted} strokeWidth={4} fill="none"/>
-      <Path d={selectedPath} stroke={c.lime} strokeWidth={5} fill="none"/>
+      <Path d={progressPath} stroke={c.lime} strokeWidth={5} fill="none"/>
       {dot && <Circle cx={Number(dot[1])} cy={Number(dot[2])} r={7} fill={c.lime}/>}
     </Svg></View>;
   }
@@ -39,8 +40,8 @@ export function RunMap({ original, selected, time, height = 260 }: Props) {
     <MapView style={{ flex: 1 }} region={regionFor(original.points)} userInterfaceStyle="dark"
       scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false}
       showsCompass={false} showsPointsOfInterests={false}>
-      {original.points.length > 1 && <Polyline coordinates={coordinates(original.points)} strokeColor="#81909888" strokeWidth={4} />}
-      {selected.points.length > 1 && <Polyline coordinates={coordinates(selected.points)} strokeColor={c.lime} strokeWidth={5} />}
+      {original.points.length > 1 && <Polyline coordinates={coordinates(original.points)} strokeColor="#465158" strokeWidth={5} />}
+      {progress.length > 1 && <Polyline coordinates={coordinates(progress)} strokeColor={c.lime} strokeWidth={5} />}
       {position && <MapCircle center={{ latitude: position.latitude, longitude: position.longitude }} radius={7}
         fillColor={c.lime} strokeColor={c.white} strokeWidth={2} />}
     </MapView>

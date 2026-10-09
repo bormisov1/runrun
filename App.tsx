@@ -18,6 +18,7 @@ import { exportGpx } from './src/export';
 import { StopDialog } from './src/StopDialog';
 import { Awards } from './src/Awards';
 import { RunMap } from './src/RunMap';
+import { RunTrimmer } from './src/RunTrimmer';
 
 type Tab = 'RUN' | 'HISTORY' | 'AWARDS';
 const PRIVACY_URL = 'https://bormisov.com/runrun/privacy.html';
@@ -338,18 +339,13 @@ function Main() {
           {original.points.length ? <RunMap original={original} selected={draft} time={scrubTime} height={280}/> : <Route run={draft} height={260}/>}
           <View style={st.cropCard}>
             <View style={st.cropRow}><Text style={st.cropTitle}>CROP YOUR RUN</Text><Text style={st.cropTime}>{clock((scrubTime - original.startedAt) / 1000)} / {clock(((original.endedAt ?? original.startedAt) - original.startedAt) / 1000)}</Text></View>
-            <Text style={st.cropHint}>Drag to inspect your position, then set the start and finish.</Text>
-            <Slider accessibilityLabel="Run timeline" minimumValue={original.startedAt} maximumValue={original.endedAt ?? original.startedAt + 1} value={scrubTime}
-              onValueChange={setScrubTime} minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
-            <View style={st.cropRangeTrack}><View style={[st.cropRangeFill, {
-              left: `${100 * (cropStart - original.startedAt) / Math.max(1, (original.endedAt ?? original.startedAt) - original.startedAt)}%`,
-              width: `${100 * (cropEnd - cropStart) / Math.max(1, (original.endedAt ?? original.startedAt) - original.startedAt)}%`,
-            }]}/></View>
+            <Text style={st.cropHint}>Drag the trim handles to choose a fragment. Hold a handle for precise movement.</Text>
+            <RunTrimmer minimum={original.startedAt} maximum={original.endedAt ?? original.startedAt}
+              start={cropStart} end={cropEnd} onStartChange={setCropStart} onEndChange={setCropEnd} onPreview={setScrubTime}/>
             <View style={st.cropRow}><Text style={st.cropBoundary}>START  {clock((cropStart - original.startedAt) / 1000)}</Text><Text style={st.cropBoundary}>FINISH  {clock((cropEnd - original.startedAt) / 1000)}</Text></View>
-            <View style={st.cropActions}>
-              <Pressable style={st.cropAction} onPress={() => setCropStart(Math.max(original.startedAt, Math.min(scrubTime, cropEnd - Math.min(1000, (original.endedAt ?? original.startedAt) - original.startedAt))))}><Text style={st.cropActionText}>SET START HERE</Text></Pressable>
-              <Pressable style={st.cropAction} onPress={() => setCropEnd(Math.min(original.endedAt ?? original.startedAt, Math.max(scrubTime, cropStart + Math.min(1000, (original.endedAt ?? original.startedAt) - original.startedAt))))}><Text style={st.cropActionText}>SET FINISH HERE</Text></Pressable>
-            </View>
+            <Text style={st.cropHint}>Drag the playhead to see the route fill as the run progresses.</Text>
+            <Slider accessibilityLabel="Run timeline playhead" minimumValue={original.startedAt} maximumValue={original.endedAt ?? original.startedAt + 1} value={scrubTime}
+              onValueChange={setScrubTime} minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
             <View style={st.cropRow}>
               <Pressable onPress={() => { setCropStart(original.startedAt); setCropEnd(original.endedAt ?? original.startedAt); setScrubTime(original.startedAt); }}><Text style={st.cropReset}>RESET TO FULL RUN</Text></Pressable>
               <Pressable disabled={cropStart === selected.startedAt && cropEnd === selected.endedAt} onPress={saveCrop}><Text style={[st.cropSave, cropStart === selected.startedAt && cropEnd === selected.endedAt && { opacity: 0.4 }]}>SAVE CROP</Text></Pressable>

@@ -283,6 +283,14 @@ export function pointAt(points: Point[], time: number): Point | null {
     speed: between(a.speed, b.speed), timestamp: time };
 }
 
+export function pointsBetween(points: Point[], start: number, end: number): Point[] {
+  if (!points.length || end <= start) return [];
+  const first = pointAt(points, start);
+  const last = pointAt(points, end);
+  if (!first || !last || last.timestamp <= first.timestamp) return [];
+  return [first, ...points.filter(p => p.timestamp > first.timestamp && p.timestamp < last.timestamp), last];
+}
+
 export function cropRun(run: Run, start: number, end: number): Run {
   const original = originalRun(run);
   const finish = original.endedAt ?? Date.now();
