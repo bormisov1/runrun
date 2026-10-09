@@ -20,8 +20,9 @@ any app UI changes.
 ## Play Console setup
 
 1. Create the app in Play Console with package name `com.bormisov.runrun`.
-2. Publish `public/privacy.html` at a stable public HTTPS URL and enter that URL
-   in Play Console. Confirm the contact link and policy still match the app.
+2. Enter <https://bormisov.com/runrun/privacy.html> as the privacy policy URL
+   in Play Console. It serves `public/privacy.html` from the VPS. Republish the
+   page after any policy change and confirm it still matches the app.
 3. Complete the app content and Data safety forms based on the actual release.
    RUNRUN has no account or developer server; location and run history remain on
    device. User-chosen exports go to the destination they select.
