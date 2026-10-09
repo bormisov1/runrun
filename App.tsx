@@ -18,6 +18,7 @@ import { exportGpx } from './src/export';
 import { StopDialog } from './src/StopDialog';
 import { Awards } from './src/Awards';
 import { RunMap } from './src/RunMap';
+import { RunTrimmer } from './src/RunTrimmer';
 
 type Tab = 'RUN' | 'HISTORY' | 'AWARDS';
 const PRIVACY_URL = 'https://bormisov.com/runrun/privacy.html';
@@ -53,7 +54,7 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
   const [photo, setPhoto] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [appActive, setAppActive] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  const [appActive, setAppActive] = useState(AppState.currentState !== 'background');
   const [cameraReady, setCameraReady] = useState(false);
   const [lenses, setLenses] = useState<string[]>([]);
   const [selectedLens, setSelectedLens] = useState<string | undefined>(undefined);
@@ -88,7 +89,8 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
   }, [visible]);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
-      const active = state === 'active';
+      // Control Center temporarily reports "inactive" while the camera can keep recording.
+      const active = state !== 'background';
       appActiveRef.current = active;
       if (!active && recordingRef.current) {
         interruptedRef.current = true;
@@ -182,7 +184,7 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
     setBusy(true);
     try {
       const uri = Platform.OS === 'ios'
-        ? await brandPhoto(photo, frameSize.current.width / frameSize.current.height)
+        ? await brandPhoto(photo)
         : await captureRef(photoRef.current!, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1440 });
       if (share) await Sharing.shareAsync(uri, { mimeType: Platform.OS === 'ios' ? 'image/jpeg' : 'image/png', UTI: Platform.OS === 'ios' ? 'public.jpeg' : 'public.png' });
       else { await saveMedia(uri); if (session === sessionRef.current) Alert.alert('Saved', 'Branded photo is in Photos.'); }
@@ -234,7 +236,7 @@ function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () =
         <Pressable accessibilityRole="button" accessibilityLabel="Close camera" hitSlop={8} onPress={closeCamera} style={st.cameraClose}><Icon name="close" size={26}/></Pressable>
       </View>
       <Text style={st.cameraNote}>{mode === 'video' ? `${micPermission?.granted ? 'Microphone audio is recorded.' : 'Enable microphone access to record audio.'}${Platform.OS === 'ios' ? ' Saved videos include the RUNRUN logo.' : ''}` : 'Saved photos include the RUNRUN logo.'}</Text>
-      {photo ? <View style={st.cameraActions}><Pressable onPress={() => setPhoto(null)}><Text style={st.cameraAction}>RETAKE</Text></Pressable><Pressable onPress={() => outputPhoto(false)}><Text style={st.cameraAction}>SAVE</Text></Pressable><Pressable onPress={() => outputPhoto(true)}><Text style={st.cameraAction}>SHARE</Text></Pressable></View>
+      {photo ? <View style={st.cameraActions}><Pressable disabled={busy} onPress={() => setPhoto(null)}><Text style={st.cameraAction}>RETAKE</Text></Pressable><Pressable disabled={busy} onPress={() => outputPhoto(false)}><Text style={st.cameraAction}>SAVE</Text></Pressable><Pressable disabled={busy} onPress={() => outputPhoto(true)}><Text style={st.cameraAction}>SHARE</Text></Pressable></View>
         : <><View style={st.modeRow}><Pressable onPress={() => changeMode('picture')}><Text style={[st.modeText, mode === 'picture' && { color: c.lime }]}>PHOTO</Text></Pressable><Pressable onPress={() => changeMode('video')}><Text style={[st.modeText, mode === 'video' && { color: c.lime }]}>VIDEO</Text></Pressable></View>
           <View style={st.cameraControls}><Pressable disabled={busy || (!recording && !cameraReady)} onPress={shoot} style={[st.shutter, recording && { borderColor: c.red }]}><View style={[st.shutterInner, recording && { backgroundColor: c.red, borderRadius: 6, width: 27, height: 27 }]}/></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Switch camera" disabled={busy || recording || !cameraPermission?.granted} onPress={() => { cameraGenerationRef.current += 1; setCameraReady(false); setLenses([]); setSelectedLens(undefined); setFocus(null); setFacing(current => current === 'back' ? 'front' : 'back'); }} style={[st.flipCamera, (busy || recording) && { opacity: 0.45 }]}><Icon name="camera-reverse-outline" size={25}/></Pressable></View></>}
       {busy && <ActivityIndicator color={c.lime}/>}
@@ -338,18 +340,13 @@ function Main() {
           {original.points.length ? <RunMap original={original} selected={draft} time={scrubTime} height={280}/> : <Route run={draft} height={260}/>}
           <View style={st.cropCard}>
             <View style={st.cropRow}><Text style={st.cropTitle}>CROP YOUR RUN</Text><Text style={st.cropTime}>{clock((scrubTime - original.startedAt) / 1000)} / {clock(((original.endedAt ?? original.startedAt) - original.startedAt) / 1000)}</Text></View>
-            <Text style={st.cropHint}>Drag to inspect your position, then set the start and finish.</Text>
-            <Slider accessibilityLabel="Run timeline" minimumValue={original.startedAt} maximumValue={original.endedAt ?? original.startedAt + 1} value={scrubTime}
-              onValueChange={setScrubTime} minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
-            <View style={st.cropRangeTrack}><View style={[st.cropRangeFill, {
-              left: `${100 * (cropStart - original.startedAt) / Math.max(1, (original.endedAt ?? original.startedAt) - original.startedAt)}%`,
-              width: `${100 * (cropEnd - cropStart) / Math.max(1, (original.endedAt ?? original.startedAt) - original.startedAt)}%`,
-            }]}/></View>
+            <Text style={st.cropHint}>Drag the trim handles to choose a fragment. Hold a handle for precise movement.</Text>
+            <RunTrimmer minimum={original.startedAt} maximum={original.endedAt ?? original.startedAt}
+              start={cropStart} end={cropEnd} onStartChange={setCropStart} onEndChange={setCropEnd} onPreview={setScrubTime}/>
             <View style={st.cropRow}><Text style={st.cropBoundary}>START  {clock((cropStart - original.startedAt) / 1000)}</Text><Text style={st.cropBoundary}>FINISH  {clock((cropEnd - original.startedAt) / 1000)}</Text></View>
-            <View style={st.cropActions}>
-              <Pressable style={st.cropAction} onPress={() => setCropStart(Math.max(original.startedAt, Math.min(scrubTime, cropEnd - Math.min(1000, (original.endedAt ?? original.startedAt) - original.startedAt))))}><Text style={st.cropActionText}>SET START HERE</Text></Pressable>
-              <Pressable style={st.cropAction} onPress={() => setCropEnd(Math.min(original.endedAt ?? original.startedAt, Math.max(scrubTime, cropStart + Math.min(1000, (original.endedAt ?? original.startedAt) - original.startedAt))))}><Text style={st.cropActionText}>SET FINISH HERE</Text></Pressable>
-            </View>
+            <Text style={st.cropHint}>Drag the playhead to see the route fill as the run progresses.</Text>
+            <Slider accessibilityLabel="Run timeline playhead" minimumValue={original.startedAt} maximumValue={original.endedAt ?? original.startedAt + 1} value={scrubTime}
+              onValueChange={setScrubTime} minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line} thumbTintColor={c.lime}/>
             <View style={st.cropRow}>
               <Pressable onPress={() => { setCropStart(original.startedAt); setCropEnd(original.endedAt ?? original.startedAt); setScrubTime(original.startedAt); }}><Text style={st.cropReset}>RESET TO FULL RUN</Text></Pressable>
               <Pressable disabled={cropStart === selected.startedAt && cropEnd === selected.endedAt} onPress={saveCrop}><Text style={[st.cropSave, cropStart === selected.startedAt && cropEnd === selected.endedAt && { opacity: 0.4 }]}>SAVE CROP</Text></Pressable>

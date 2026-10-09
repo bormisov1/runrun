@@ -38,6 +38,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "postinstall": "node scripts/patch-expo-camera.mjs",
     "start": "expo start",
     "test": "tsx --test src/*.test.ts",
     "typecheck": "tsc --noEmit",
