@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
@@ -19,6 +18,7 @@ import { StopDialog } from './src/StopDialog';
 import { Awards } from './src/Awards';
 import { RunMap } from './src/RunMap';
 import { RunTrimmer } from './src/RunTrimmer';
+import { RunPlayhead } from './src/RunPlayhead';
 
 type Tab = 'RUN' | 'HISTORY' | 'AWARDS';
 const PRIVACY_URL = 'https://bormisov.com/runrun/privacy.html';
@@ -264,12 +264,10 @@ function Main() {
   useEffect(() => { (async () => { const run = await getActive(); setActiveRun(run); setHistory(await getHistory()); if (run) { const background = await Location.hasStartedLocationUpdatesAsync('runrun.location.v1').catch(() => false); setTrackingMode(background ? 'background' : 'foreground'); if (!background) { const permission = await Location.getForegroundPermissionsAsync(); if (permission.granted) watch.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 }, async loc => addLocations([loc])); } } })(); }, []);
   useEffect(() => { const id = setInterval(async () => { setNow(Date.now()); setActiveRun(await getActive()); }, 1000); return () => clearInterval(id); }, []);
   const current = active ? stats(active, now) : null;
-  const original = selected ? originalRun(selected) : null;
-  const draft = selected ? cropRun(selected, cropStart, cropEnd) : null;
-  const draftStats = draft ? stats(draft) : null;
+  const original = useMemo(() => selected ? originalRun(selected) : null, [selected]);
+  const draft = useMemo(() => selected ? cropRun(selected, cropStart, cropEnd) : null, [selected, cropStart, cropEnd]);
+  const draftStats = useMemo(() => draft ? stats(draft) : null, [draft]);
   const previewTime = Math.max(cropStart, Math.min(scrubTime, cropEnd));
-  // Native sliders lose precision with Unix timestamps; use the crop's duration as the range.
-  const cropDuration = Math.max(0, cropEnd - cropStart);
   function openRun(run: Run) {
     setSelected(run);
     setCropStart(run.startedAt);
@@ -348,11 +346,7 @@ function Main() {
               start={cropStart} end={cropEnd} onStartChange={setCropStart} onEndChange={setCropEnd} onPreview={setScrubTime}/>
             <View style={st.cropRow}><Text style={st.cropBoundary}>START  {clock((cropStart - original.startedAt) / 1000)}</Text><Text style={st.cropBoundary}>FINISH  {clock((cropEnd - original.startedAt) / 1000)}</Text></View>
             <Text style={st.cropHint}>Drag the playhead to see the route fill as the run progresses.</Text>
-            <Slider accessibilityLabel="Run timeline playhead" minimumValue={0} maximumValue={cropDuration || 1}
-              value={previewTime - cropStart} step={cropDuration ? cropDuration / 1000 : 0}
-              disabled={cropDuration === 0} onValueChange={offset => setScrubTime(Math.max(cropStart, Math.min(cropStart + offset, cropEnd)))}
-              minimumTrackTintColor={c.lime} maximumTrackTintColor={c.line}
-              thumbImage={require('./assets/playhead-thumb.png')} thumbSize={Platform.OS === 'ios' ? 28 : 20}/>
+            <RunPlayhead start={cropStart} end={cropEnd} value={previewTime} onChange={setScrubTime}/>
             <View style={st.cropRow}>
               <Pressable onPress={() => { setCropStart(original.startedAt); setCropEnd(original.endedAt ?? original.startedAt); setScrubTime(original.startedAt); }}><Text style={st.cropReset}>RESET TO FULL RUN</Text></Pressable>
               <Pressable disabled={cropStart === selected.startedAt && cropEnd === selected.endedAt} onPress={saveCrop}><Text style={[st.cropSave, cropStart === selected.startedAt && cropEnd === selected.endedAt && { opacity: 0.4 }]}>SAVE CROP</Text></Pressable>

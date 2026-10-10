@@ -18,7 +18,7 @@ function Chart({ label, values, unit, color, formatValue = value => value.toFixe
   </View>;
 }
 
-export function Trends({ run }: { run: Run }) {
+export const Trends = React.memo(function Trends({ run }: { run: Run }) {
   const paceValues = run.points.slice(1).map((p, i) => {
     const distance = meters(run.points[i], p);
     const seconds = (p.timestamp - run.points[i].timestamp) / 1000;
@@ -26,4 +26,4 @@ export function Trends({ run }: { run: Run }) {
   });
   const elevation = run.points.map(p => p.altitude).filter((n): n is number => n != null && Number.isFinite(n));
   return <View style={{ marginTop: 22 }}><Text style={{ color: c.lime, fontSize: 10, fontWeight: '900', letterSpacing: 2, marginBottom: 4 }}>HOW YOUR RUN CHANGED</Text><Chart label="PACE OVER TIME" values={paceValues} unit="MIN/KM" color={c.cyan} formatValue={paceSeconds} lowerIsBetter/><Chart label="ELEVATION PROFILE" values={elevation} unit="M" color={c.lime}/></View>;
-}
+});

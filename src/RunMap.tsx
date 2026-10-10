@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Point, Run, pointAt, pointsBetween, routePath } from './run';
@@ -20,30 +20,35 @@ function regionFor(points: Point[]) {
   };
 }
 
-export function RunMap({ original, selected, time, height = 260 }: Props) {
+export const RunMap = React.memo(function RunMap({ original, selected, time, height = 260 }: Props) {
+  const base = useMemo(() => original.points.length ? {
+    region: regionFor(original.points),
+    coordinates: original.points.map(p => ({ latitude: p.latitude, longitude: p.longitude })),
+    path: routePath(original.points, 320, height, 24),
+  } : null, [original.points, height]);
   if (!original.points.length) return <View style={{ height, backgroundColor: c.panel, borderRadius: 20 }} />;
   const position = pointAt(original.points, time);
   const progress = pointsBetween(original.points, selected.startedAt, Math.min(time, selected.endedAt ?? time));
   if (!maps) {
-    const full = routePath(original.points, 320, height, 24);
     const progressPath = routePath(progress, 320, height, 24, original.points);
     const dot = position && routePath([position], 320, height, 24, original.points).match(/M([\d.]+) ([\d.]+)/);
     return <View style={{ height, borderRadius: 20, overflow: 'hidden', backgroundColor: c.panel }}><Svg width="100%" height={height} viewBox={`0 0 320 ${height}`}>
-      <Path d={full} stroke={c.muted} strokeWidth={4} fill="none"/>
+      <Path d={base!.path} stroke={c.muted} strokeWidth={4} fill="none"/>
       <Path d={progressPath} stroke={c.lime} strokeWidth={5} fill="none"/>
       {dot && <Circle cx={Number(dot[1])} cy={Number(dot[2])} r={7} fill={c.lime}/>}
     </Svg></View>;
   }
-  const { default: MapView, Polyline, Circle: MapCircle } = maps;
-  const coordinates = (points: Point[]) => points.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+  const { default: MapView, Polyline, Marker } = maps;
+  const progressCoordinates = progress.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
   return <View style={{ height, borderRadius: 20, overflow: 'hidden', backgroundColor: c.panel }}>
-    <MapView style={{ flex: 1 }} region={regionFor(original.points)} userInterfaceStyle="dark"
+    <MapView style={{ flex: 1 }} region={base!.region} userInterfaceStyle="dark"
       scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false}
       showsCompass={false} showsPointsOfInterests={false}>
-      {original.points.length > 1 && <Polyline coordinates={coordinates(original.points)} strokeColor="#465158" strokeWidth={5} />}
-      {progress.length > 1 && <Polyline coordinates={coordinates(progress)} strokeColor={c.lime} strokeWidth={5} />}
-      {position && <MapCircle center={{ latitude: position.latitude, longitude: position.longitude }} radius={7}
-        fillColor={c.lime} strokeColor={c.white} strokeWidth={2} />}
+      {original.points.length > 1 && <Polyline coordinates={base!.coordinates} strokeColor="#465158" strokeWidth={5} />}
+      {progress.length > 1 && <Polyline coordinates={progressCoordinates} strokeColor={c.lime} strokeWidth={5} />}
+      {position && <Marker coordinate={{ latitude: position.latitude, longitude: position.longitude }} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: c.lime, borderColor: c.white, borderWidth: 2 }}/>
+      </Marker>}
     </MapView>
   </View>;
-}
+});
