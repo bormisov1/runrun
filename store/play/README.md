@@ -28,11 +28,11 @@ any app UI changes.
    forms based on the actual release.
    RUNRUN has no account or developer server; location and run history remain on
    device. User-chosen exports go to the destination they select.
-4. Declare background location and the location foreground service. They record
-   a route during an active run while
-   the app is closed or the screen is locked. Show Play the in-app disclosure
-   displayed before the location permission request, and provide a short demo
-   video of starting and finishing a background run.
+4. Declare background location and the location foreground service. They keep
+   a rolling 24-hour route while the app is closed or the screen is locked.
+   Show Play the in-app disclosure displayed before the location permission
+   request, and provide a short demo video of creating an activity from a
+   fragment and turning recording off in Settings.
 5. Upload the icon, feature graphic, and at least two screenshots. Review the
    listing on a real device. Provide release notes and complete the content rating
    and target audience questionnaires.

@@ -15,7 +15,7 @@ Open the resulting `exp://` URL in Expo Go on an iPhone. Expo Go supports foregr
 
 ## iPhone build
 
-The iOS build enables background location while the phone is locked, dark Apple Maps, and a local Swift module that burns the same RUNRUN watermark into saved photos and videos. After a run, open its recap to trim the timeline, save a fragment, and export a transparent route PNG with stats. After the automatic TestFlight upload, add the processed build and your Apple ID to an internal TestFlight testing group in App Store Connect.
+The iOS build enables background location while the phone is locked, dark Apple Maps, and a local Swift module that burns the same RUNRUN watermark into saved photos and videos. Recent location history is on by default: RUNRUN keeps the last 24 hours of simplified route points on the device, lets you select a fragment and create an activity, and deletes older points. Turn it off in Settings to clear those points. Background recording requires Always location permission and stops if the user force quits the app. After a run, open its recap to trim the timeline, save a fragment, and export a transparent route PNG with stats. After the automatic TestFlight upload, add the processed build and your Apple ID to an internal TestFlight testing group in App Store Connect.
 
 The camera records microphone audio. This implementation does not embed sound played by other apps; protected music can also be restricted by iOS capture APIs.
 

@@ -33,10 +33,11 @@ to the intended audience. These are account-owner declarations, not app defaults
 > route as a GPX file or a shareable image. You can also capture photos and
 > videos during a run and save them on your device.
 >
-> RUNRUN collects location data to record your route, distance and speed during
-> an active run, even when the app is closed or not in use, if you choose
-> background tracking. You can choose tracking only while RUNRUN is open.
-> Tracking stops when you finish or discard the run.
+> RUNRUN records your last 24 hours of location on your device by default, so
+> you can select any part of the route and create an activity later. Old points
+> are deleted automatically. You can turn this off in Settings, which also
+> clears recent points. Background recording requires background location
+> permission; without it, recording works while the app is open.
 >
 > Runs and routes are stored on your device. RUNRUN requires no account and
 > includes no ads. Exports are shared only when you choose a destination.
@@ -59,20 +60,19 @@ them against a native Android build before using them in a public listing.
 
 ## Permission declaration wording
 
-**Background location feature:** Recording a user-started run while the app is
-closed or the phone is locked. RUNRUN records GPS points during that active run
-to calculate and display the route, distance and speed. The user can stop or
-discard the run, and can choose foreground-only recording. Routes stay on the
-device unless the user explicitly exports them.
+**Background location feature:** Keeping a rolling 24-hour route on the device
+while the app is closed or the phone is locked, so the user can select a
+fragment and create an activity later. This is enabled by default and can be
+turned off in Settings, which clears recent points. Saved activities remain in
+run history. Routes stay on the device unless the user explicitly exports them.
 
-**Location foreground service:** Keeps the user-started run recording and its
-persistent recording notification active while the user uses other apps or locks
-the screen. If delayed or interrupted, route points may be missing and distance
-and pace may become inaccurate.
+**Location foreground service:** Keeps the rolling route recording and its
+persistent notification active while the user uses other apps or locks the
+screen. If delayed or interrupted, route points may be missing.
 
-Google requires a short **Android device recording** showing Start Run, the
-in-app location disclosure, the runtime permission flow, a run continuing with
-the app in the background, and Stop Run. Supply that video in the location and
+Google requires a short **Android device recording** showing the 24-hour
+location disclosure, the runtime permission flow, recording in the background,
+creating an activity from a fragment, and turning recording off in Settings. Supply that video in the location and
 foreground-service declarations when Play Console requests it.
 
 ## Data safety notes

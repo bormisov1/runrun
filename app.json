@@ -47,8 +47,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "RUNRUN needs your location to record running routes.",
-          "locationAlwaysAndWhenInUsePermission": "RUNRUN needs your location during an active run, including when your iPhone is locked.",
+          "locationWhenInUsePermission": "RUNRUN uses your location to record runs and your last 24 hours of routes.",
+          "locationAlwaysAndWhenInUsePermission": "RUNRUN saves your last 24 hours of routes even while the app is closed, so you can create an activity later. You can turn this off in Settings.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
