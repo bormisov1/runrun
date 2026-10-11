@@ -260,7 +260,11 @@ export function routePath(points: Point[], width: number, height: number, paddin
   const referenceYs = bounds.map(p => p.latitude);
   const xs = points.map(p => p.longitude * Math.cos(p.latitude * Math.PI / 180));
   const ys = points.map(p => p.latitude);
-  const minX = Math.min(...referenceXs), maxX = Math.max(...referenceXs), minY = Math.min(...referenceYs), maxY = Math.max(...referenceYs);
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < referenceXs.length; i++) {
+    minX = Math.min(minX, referenceXs[i]); maxX = Math.max(maxX, referenceXs[i]);
+    minY = Math.min(minY, referenceYs[i]); maxY = Math.max(maxY, referenceYs[i]);
+  }
   const scale = Math.min((width - 2 * padding) / Math.max(maxX - minX, 0.0001), (height - 2 * padding) / Math.max(maxY - minY, 0.0001));
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
   return points.map((_, i) => `${i ? 'L' : 'M'}${(width / 2 + (xs[i] - cx) * scale).toFixed(1)} ${(height / 2 - (ys[i] - cy) * scale).toFixed(1)}`).join(' ');

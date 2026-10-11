@@ -9,9 +9,11 @@ type Props = { original: Run; selected: Run; time: number; height?: number };
 const maps: typeof import('react-native-maps') | null = Platform.OS === 'ios' ? require('react-native-maps') : null;
 
 function regionFor(points: Point[]) {
-  const latitudes = points.map(p => p.latitude), longitudes = points.map(p => p.longitude);
-  const minLat = Math.min(...latitudes), maxLat = Math.max(...latitudes);
-  const minLon = Math.min(...longitudes), maxLon = Math.max(...longitudes);
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+  for (const point of points) {
+    minLat = Math.min(minLat, point.latitude); maxLat = Math.max(maxLat, point.latitude);
+    minLon = Math.min(minLon, point.longitude); maxLon = Math.max(maxLon, point.longitude);
+  }
   return {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLon + maxLon) / 2,
