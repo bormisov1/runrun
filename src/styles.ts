@@ -83,7 +83,7 @@ export const st = StyleSheet.create({
   gpxButton: { borderColor: c.line, borderWidth: 1, height: 55, borderRadius: 16, marginTop: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 12 },
   gpxText: { fontWeight: '900', color: c.white, letterSpacing: 1 },
   offscreen: { position: 'absolute', top: -3000, left: 0 },
-  shareCanvas: { width: 360, height: 480, backgroundColor: 'transparent', paddingHorizontal: 16, paddingTop: 10 },
+  shareCanvas: { width: 360, height: 480, backgroundColor: 'transparent' },
   shareKicker: { color: c.white, fontSize: 10, fontWeight: '900', letterSpacing: 2, marginTop: 13 },
   shareGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: -6 },
   shareItem: { width: '47%', borderLeftWidth: 2, borderColor: c.lime, paddingLeft: 9, paddingVertical: 3 },

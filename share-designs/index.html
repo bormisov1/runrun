@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070a0e">
+  <title>RUNRUN — transparent export concepts</title>
+  <style>
+    :root { color-scheme: dark; --bg:#070a0e; --panel:#11171d; --line:#29333a; --white:#f5f7f0; --muted:#849099; --lime:#d8ff3e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--white); font:14px/1.45 Arial, Helvetica, sans-serif; }
+    button, input { font:inherit; }
+    button { cursor:pointer; }
+    .shell { max-width:1600px; margin:auto; padding:28px clamp(18px,4vw,64px) 90px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:20px; padding-bottom:22px; border-bottom:1px solid var(--line); }
+    .brand { font-weight:900; font-size:20px; font-style:italic; letter-spacing:-.07em; }
+    .brand span { color:var(--lime); }
+    .top-right, .eyebrow, .count, .card-num, .card-family, .toolbar-label { font-size:10px; font-weight:800; letter-spacing:.17em; text-transform:uppercase; }
+    .top-right { color:var(--muted); }
+    .intro { display:flex; justify-content:space-between; gap:32px; align-items:end; margin:46px 0 30px; }
+    .eyebrow { color:var(--lime); margin:0 0 11px; }
+    h1 { font-size:clamp(42px,5.5vw,83px); line-height:.95; letter-spacing:-.065em; margin:0; max-width:890px; }
+    .intro p:last-child { color:#aab5b8; max-width:300px; margin:0 0 5px; }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:16px; padding:18px; border:1px solid var(--line); border-radius:17px; background:var(--panel); margin-bottom:29px; }
+    .toolbar-group { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+    .toolbar-label { display:block; color:var(--muted); width:100%; margin-bottom:2px; }
+    .segmented { display:flex; background:#070a0e; padding:3px; border:1px solid #3a464d; border-radius:9px; }
+    .segmented button { padding:9px 12px; border:0; border-radius:6px; color:var(--muted); background:none; font-size:11px; font-weight:800; }
+    .segmented button[aria-pressed="true"] { color:#070a0e; background:var(--lime); }
+    .field { display:flex; flex-direction:column; gap:3px; }
+    .field span { color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    .field input { width:105px; height:38px; border:1px solid #3a464d; border-radius:8px; background:#070a0e; color:var(--white); padding:0 10px; font-weight:800; outline:none; }
+    .field input:focus { border-color:var(--lime); }
+    .upload { display:inline-flex; align-items:center; justify-content:center; height:39px; border:1px solid #667277; border-radius:8px; padding:0 13px; font-size:11px; letter-spacing:.08em; font-weight:800; text-transform:uppercase; white-space:nowrap; cursor:pointer; }
+    .upload input { display:none; }
+    .hint { color:var(--muted); font-size:11px; margin-left:auto; max-width:190px; }
+    .section-head { display:flex; justify-content:space-between; align-items:baseline; gap:18px; margin-bottom:16px; }
+    .section-head h2 { margin:0; font-size:19px; letter-spacing:-.03em; }
+    .count { color:var(--lime); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:15px; overflow:hidden; min-width:0; }
+    .card:hover { border-color:#65713c; }
+    .card-head { display:flex; align-items:center; justify-content:space-between; padding:13px 14px; gap:8px; }
+    .card-num { color:var(--lime); }
+    .card-family { color:var(--muted); text-align:right; }
+    .preview { width:100%; aspect-ratio:3/4; display:grid; place-items:center; overflow:hidden; }
+    .preview svg { display:block; width:100%; height:100%; }
+    .surface-checker { background-color:#727a7e; background-image:linear-gradient(45deg,#90989c 25%,transparent 25%),linear-gradient(-45deg,#90989c 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#90989c 75%),linear-gradient(-45deg,transparent 75%,#90989c 75%); background-size:24px 24px; background-position:0 0,0 12px,12px -12px,-12px 0; }
+    .surface-dark { background:#152027; }
+    .surface-light { background:#e9ebe6; }
+    .surface-photo { background:radial-gradient(circle at 75% 21%,#eed4a1 0 9%,transparent 31%),linear-gradient(150deg,transparent 38%,#253931 39% 58%,transparent 59%),linear-gradient(30deg,#192b2e 25%,#476d64 45%,#7f9892 60%,#263c40 100%); }
+    .card-foot { padding:15px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .card-title { font-size:16px; font-weight:900; letter-spacing:-.04em; }
+    .card-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+    .card-actions { display:flex; gap:5px; }
+    .icon-btn { width:34px; height:34px; display:grid; place-items:center; border:1px solid #425057; border-radius:8px; background:transparent; color:var(--white); font-size:17px; }
+    .icon-btn:hover,.icon-btn:focus-visible { color:var(--bg); background:var(--lime); border-color:var(--lime); }
+    dialog { width:min(92vw,620px); max-height:92vh; border:1px solid #49565b; border-radius:18px; background:var(--panel); padding:0; color:var(--white); box-shadow:0 30px 80px #000b; }
+    dialog::backdrop { background:#000c; }
+    .dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px 18px; }
+    .dialog-head strong { font-size:17px; }
+    .dialog-head button { border:0; background:transparent; color:var(--white); font-size:25px; }
+    dialog .preview { width:min(100%,540px); margin:auto; }
+    .dialog-foot { display:flex; gap:9px; padding:15px 18px; }
+    .dialog-foot button { flex:1; background:var(--lime); color:var(--bg); border:0; border-radius:9px; padding:12px; font-size:11px; letter-spacing:.09em; font-weight:900; text-transform:uppercase; }
+    .dialog-foot button + button { background:transparent; color:var(--white); border:1px solid #536168; }
+    .footer { color:var(--muted); font-size:11px; margin-top:24px; }
+    @media(max-width:700px) { .intro { display:block; margin-top:33px; } .intro p:last-child { margin-top:18px; } .hint { margin-left:0; max-width:none; width:100%; } .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .card-head { padding:9px; } .card-foot { padding:10px; display:block; } .card-actions { margin-top:10px; } .card-title { font-size:14px; } .card-sub { font-size:10px; } }
+    @media(max-width:420px) { .grid { grid-template-columns:1fr 1fr; } .card-family { font-size:8px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top"><div class="brand">RUN<span>RUN</span></div><div class="top-right">Export design study / local only</div></header>
+    <section class="intro"><div><p class="eyebrow">Transparent route PNG / 33 styles</p><h1>One run.<br>33 ways to show it.</h1></div><p>Compare route and stat layouts on a transparent canvas. Change the sample numbers, test a backdrop, or drop in your own route image.</p></section>
+    <section class="toolbar" aria-label="Preview settings">
+      <div class="toolbar-group"><span class="toolbar-label">Preview surface</span><div class="segmented" id="surfaces"><button type="button" data-surface="checker" aria-pressed="true">Grid</button><button type="button" data-surface="dark" aria-pressed="false">Dark</button><button type="button" data-surface="light" aria-pressed="false">Light</button><button type="button" data-surface="photo" aria-pressed="false">Photo</button></div></div>
+      <label class="field"><span>Distance · km</span><input id="distance" value="12.48" maxlength="8"></label>
+      <label class="field"><span>Duration</span><input id="duration" value="1:02:34" maxlength="10"></label>
+      <label class="field"><span>Avg pace · min/km</span><input id="pace" value="5:01" maxlength="8"></label>
+      <label class="field"><span>Elevation · m</span><input id="elevation" value="+184" maxlength="8"></label>
+      <label class="upload">Upload route image<input id="route-file" type="file" accept="image/png,image/webp,image/svg+xml"></label>
+      <span class="hint" id="route-hint">A sample route is shown until you choose a local image.</span>
+    </section>
+    <div class="section-head"><h2>Explore the concepts</h2><span class="count">33 / 33</span></div>
+    <section class="grid" id="gallery" aria-label="Thirty-three transparent export designs"></section>
+    <p class="footer">Sample run data for layout exploration. Downloads are transparent 1080 × 1440 PNGs; the preview backdrop is never included.</p>
+  </main>
+  <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download transparent PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
+  <script>
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const routeD = 'M 74 293 C 98 281 122 277 137 255 S 136 216 169 210 C 207 204 197 170 175 163 S 129 152 146 125 C 165 94 191 105 198 82 S 226 58 244 75 C 266 95 276 117 302 119 S 329 145 311 165 C 289 191 267 182 274 213 S 307 260 324 246 C 346 228 354 196 368 170';
+    const concepts = [
+      ['01','The Original','Essentials',0,0],['02','Carbon Outline','Essentials',0,1],['03','Neon Split','Essentials',0,2],
+      ['04','Vertical Mile','Sidebar',1,0],['05','Trackside','Sidebar',1,1],['06','Ascent Rail','Sidebar',1,2],
+      ['07','Orbit','Radial',2,0],['08','Target Line','Radial',2,1],['09','Night Halo','Radial',2,2],
+      ['10','Distance First','Type Study',3,0],['11','Big Number','Type Study',3,1],['12','Pace Giant','Type Study',3,2],
+      ['13','Scoreboard','Data Grid',4,0],['14','Four Corners','Data Grid',4,1],['15','Run Matrix','Data Grid',4,2],
+      ['16','Topline','Horizontal',5,0],['17','Ribbon','Horizontal',5,1],['18','Split Horizon','Horizontal',5,2],
+      ['19','Quiet Route','Minimal',6,0],['20','Fine Print','Minimal',6,1],['21','Contour','Minimal',6,2],
+      ['22','Checkpoint','Marker',7,0],['23','Start to Finish','Marker',7,1],['24','Waypoints','Marker',7,2],
+      ['25','Race Bib','Poster',8,0],['26','Finish Card','Poster',8,1],['27','The Medal','Poster',8,2],
+      ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
+      ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2]
+    ];
+    const palettes = [
+      {ink:'#f5f7f0',accent:'#d8ff3e',second:'#56dce0'},
+      {ink:'#f5f7f0',accent:'#56dce0',second:'#d8ff3e'},
+      {ink:'#f5f7f0',accent:'#ff765a',second:'#d8ff3e'}
+    ];
+    const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+    const state = {surface:'checker',routeImage:null,selected:0};
+    const val = id => document.getElementById(id).value.trim() || '—';
+    function data() { return [
+      ['DISTANCE',val('distance'),'KM'],['DURATION',val('duration'),''],
+      ['AVG PACE',val('pace'),'MIN/KM'],['ELEVATION GAIN',val('elevation'),'M']
+    ]; }
+    function t(x,y,value,size=20,color='#f5f7f0',weight=900,anchor='start',extra='') { return `<text x="${x}" y="${y}" fill="${color}" font-family="Arial,Helvetica,sans-serif" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" ${extra}>${esc(value)}</text>`; }
+    function line(x1,y1,x2,y2,color,wide=2,opacity=1) { return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${wide}" opacity="${opacity}"/>`; }
+    function rect(x,y,w,h,color,rx=0,opacity=1,stroke='none') { return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${color}" fill-opacity="${opacity}" stroke="${stroke}"/>`; }
+    function circle(cx,cy,r,color,opacity=1,stroke='none',sw=1) { return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="${sw}"/>`; }
+    function brand(x,y,p,size=35,anchor='start') { return t(x,y,'RUNRUN',size,p.ink,900,anchor,'font-style="italic" letter-spacing="-2"') + rect(anchor==='end'?x-35:x,y+8,35,5,p.accent,2); }
+    function kicker(x,y,label,p,anchor='start') { return t(x,y,label,14,p.accent,800,anchor,'letter-spacing="3"'); }
+    function stat(x,y,i,p,size=51,mini=false) { const d=data()[i]; return `${t(x,y-31,d[0],mini?13:15,p.ink,800,'middle','letter-spacing="2" opacity=".78"')}${t(x,y,d[1],size,p.ink,900,'middle','letter-spacing="-2"')}${d[2]?t(x,y+22,d[2],mini?12:14,p.accent,800,'middle','letter-spacing="2"'):''}`; }
+    function route(x,y,w,h,p,variant=0,opts={}) {
+      const sx=w/420,sy=h/360;
+      const img=state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="420" height="360" preserveAspectRatio="xMidYMid meet"/>`:'';
+      const drawn=state.routeImage?'':`<path d="${routeD}" fill="none" stroke="${p.accent}" stroke-width="${variant===2?23:18}" stroke-linecap="round" stroke-linejoin="round" opacity=".13"/><path d="${routeD}" fill="none" stroke="${p.accent}" stroke-width="${variant===1?7:variant===2?9:6}" stroke-linecap="round" stroke-linejoin="round"/>${circle(74,293,8,p.ink)}${circle(368,170,11,p.accent,1,p.ink,3)}`;
+      return `<g transform="translate(${x} ${y}) scale(${sx} ${sy})">${img}${drawn}</g>`;
+    }
+    function statGrid(x,y,w,p,variant,compact=false) { const d=data(); let out=''; const gap=variant===1?10:18; const cw=(w-gap)/2, rh=compact?102:139; d.forEach((_,i)=>{const sx=x+(i%2)*(cw+gap),sy=y+Math.floor(i/2)*rh; if(variant===1)out+=rect(sx,sy-55,cw,rh-10,'#071014',13,.72); if(variant===2)out+=line(sx,sy-47,sx+cw,sy-47,p.accent,2,.8); else out+=line(sx,sy-52,sx,sy+33,p.accent,3); out+=stat(sx+cw/2,sy,i,p,compact?35:44);}); return out; }
+    function frame(p,variant) { return variant===0?'':variant===1?`<path d="M 42 130 V 42 H 155 M 565 42 H 678 V 140 M 42 808 V 918 H 152 M 565 918 H 678 V 810" fill="none" stroke="${p.accent}" stroke-width="3" opacity=".85"/>`:`${rect(28,28,664,904,'none',28,1,p.accent)}${line(45,82,675,82,p.accent,2,.6)}`; }
+    function artwork(index) {
+      const [num,name,family,layout,variant]=concepts[index],p=palettes[variant];
+      let s=frame(p,variant), x=variant===2?54:48;
+      const foot=kicker(52,900,'MOVE DIFFERENT.  /  RUNRUN',p);
+      if(layout===0) s+=`${brand(x,102,p)}${kicker(x,143,'RUN DATA / 12 OCT 2026',p)}${route(72,164,576,408,p,variant)}${statGrid(55,646,610,p,variant)}${foot}`;
+      if(layout===1) { s+=`${brand(48,99,p)}${kicker(48,139,'THE ROAD IS YOURS',p)}${line(414,172,414,825,p.accent,2,.75)}${route(-51,200,504,540,p,variant)}${[0,1,2,3].map((_,i)=>stat(555,265+i*157,i,p,49,true)).join('')}${kicker(48,895,'RUN / 001',p)}`; }
+      if(layout===2) { s+=`${brand(360,101,p,36,'middle')}${circle(360,424,273,'none',1,p.accent,variant===2?5:2)}${circle(360,424,227,'none',1,p.ink,1)}${route(125,218,470,390,p,variant)}${stat(190,741,0,p,45)}${stat(530,741,1,p,45)}${stat(190,853,2,p,45)}${stat(530,853,3,p,45)}`; }
+      if(layout===3) { const focus=variant===2?2:0; s+=`${brand(49,94,p)}${kicker(49,143,variant===2?'PACE / PERFORMANCE':'RUN / PERFORMANCE',p)}${kicker(360,216,data()[focus][0],p,'middle')}${t(360,361,data()[focus][1],variant===1?192:176,p.ink,900,'middle','letter-spacing="-15"')}${t(360,412,data()[focus][2],29,p.accent,900,'middle','letter-spacing="4"')}${route(124,359,540,360,p,variant)}${line(51,727,669,727,p.accent,3)}${[0,1,2,3].filter(i=>i!==focus).map((i,j)=>stat(155+j*205,818,i,p,38)).join('')}${kicker(54,903,'YOUR RUN, IN NUMBERS',p)}`; }
+      if(layout===4) { s+=`${brand(49,97,p)}${kicker(49,140,'THE FOUR THAT MATTER',p)}${route(109,162,500,350,p,variant)}${rect(44,518,632,353,'#061014',18,.56)}${statGrid(69,597,588,p,variant,true)}${kicker(49,916,'RUNRUN / ACTIVITY EXPORT',p)}`; }
+      if(layout===5) { s+=`${brand(48,98,p)}${kicker(673,94,'12 OCT / 2026',p,'end')}${line(48,126,672,126,p.accent,3)}${[0,1,2,3].map((i)=>stat(210+(i%2)*325,214+Math.floor(i/2)*131,i,p,44)).join('')}${line(48,413,672,413,p.accent,2)}${route(66,435,588,406,p,variant)}${kicker(50,910,variant===1?'KEEP MOVING / KEEP COUNTING':'ROUTE / GPS TRACE',p)}`; }
+      if(layout===6) { s+=`${brand(48,99,p,30)}${kicker(674,94,'RUN / 001',p,'end')}${route(80,159,560,470,p,variant)}${line(52,667,668,667,p.accent,variant===2?5:2)}${[0,1,2,3].map((i)=>{const xx=131+i*158; return `${t(xx,711,data()[i][0],12,p.accent,800,'middle','letter-spacing="1.5"')}${t(xx,753,data()[i][1],i===1?28:36,p.ink,900,'middle')}`}).join('')}${kicker(53,896,'EVERY STRIDE COUNTS',p)}`; }
+      if(layout===7) { s+=`${brand(48,95,p)}${kicker(48,139,'FROM START TO FINISH',p)}${line(101,185,101,777,p.accent,3)}${circle(101,188,13,p.accent)}${circle(101,774,13,p.ink,1,p.accent,4)}${route(132,204,528,438,p,variant)}${[0,1,2,3].map((i)=>{const yy=668+Math.floor(i/2)*109,xx=255+(i%2)*263; return stat(xx,yy,i,p,41)}).join('')}${kicker(48,915,'01  /  30 DESIGN STUDIES',p)}`; }
+      if(layout===8) { s+=`${rect(50,50,620,860,'#071014',31,.58,p.accent)}${rect(72,72,576,91,p.accent,13)}${t(98,132,'RUNRUN',55,'#071014',900,'start','font-style="italic" letter-spacing="-4"')}${kicker(91,204,variant===2?'FINISH / KEEP GOING':'12 OCT 2026  /  RUN 001',p)}${route(105,242,510,348,p,variant)}${line(89,616,631,616,p.accent,2)}${statGrid(90,692,540,p,variant,true)}${kicker(95,893,'MOVE DIFFERENT.',p)}`; }
+      if(layout===9) { s+=`${brand(50,99,p)}${kicker(668,96,'GPS / 001',p,'end')}${route(28,110,664,603,p,variant)}${rect(45,608,630,254,'#071014',21,.73)}${variant===1?line(52,589,667,589,p.accent,11,.8):''}${[0,1,2,3].map((i)=>{let xx=210+(i%2)*306,yy=700+Math.floor(i/2)*109;return stat(xx,yy,i,p,43)}).join('')}${kicker(48,912,'CHASE THE NEXT VERSION OF YOU.',p)}`; }
+      if(layout===10) {
+        const bareRoute=`<g transform="translate(95 240) scale(1.262 1.236)">${state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="420" height="360" preserveAspectRatio="xMidYMid meet"/>`:`<path d="${routeD}" fill="none" stroke="${p.accent}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`}</g>`;
+        if(variant===0) s=`${bareRoute}${t(360,777,val('distance'),56,p.ink,900,'middle')}${t(360,815,'KM',13,p.accent,800,'middle')}`;
+        if(variant===1) s=`${bareRoute}${t(360,760,val('distance'),100,p.ink,900,'middle')}${t(360,800,'KM',13,p.accent,800,'middle')}`;
+        if(variant===2) s=`${bareRoute}${line(180,790,540,790,p.accent,1)}${t(360,835,`${val('distance')} KM  ·  ${val('duration')}`,25,p.ink,800,'middle')}`;
+      }
+
+      return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="960" viewBox="0 0 720 960" role="img" aria-label="${esc(name)} transparent run export with route and four statistics">${s}</svg>`;
+    }
+    function render() {
+      const gallery=document.getElementById('gallery');
+      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / 33</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">Transparent · 1080 × 1440</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
+      if(document.getElementById('detail').open) updateDialog();
+    }
+    function updateDialog() { const i=state.selected; document.getElementById('detail-title').textContent=`${concepts[i][0]} / ${concepts[i][1]}`; const p=document.getElementById('detail-preview'); p.className=`preview surface-${state.surface}`; p.innerHTML=artwork(i); }
+    function svgText(i) { return artwork(i).replace('<svg ','<svg '); }
+    function downloadUrl(url,name) { const a=document.createElement('a'); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove(); }
+    function downloadSvg(i) { const blob=new Blob([svgText(i)],{type:'image/svg+xml;charset=utf-8'}); const url=URL.createObjectURL(blob); downloadUrl(url,`runrun-export-${concepts[i][0]}.svg`); setTimeout(()=>URL.revokeObjectURL(url),1000); }
+    async function downloadPng(i) {
+      const blob=new Blob([svgText(i)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();
+      try { await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;}); const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1440;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,1080,1440);ctx.drawImage(img,0,0,1080,1440);const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!png)throw new Error('PNG conversion failed');const pngUrl=URL.createObjectURL(png);downloadUrl(pngUrl,`runrun-export-${concepts[i][0]}.png`);setTimeout(()=>URL.revokeObjectURL(pngUrl),1000); }
+      catch(e) { alert(`Could not export PNG: ${e.message}`); } finally { URL.revokeObjectURL(url); }
+    }
+    document.getElementById('gallery').addEventListener('click',e=>{const open=e.target.closest('[data-open]'),download=e.target.closest('[data-download]');if(open){state.selected=Number(open.dataset.open);updateDialog();document.getElementById('detail').showModal();}if(download)downloadPng(Number(download.dataset.download));});
+    document.getElementById('surfaces').addEventListener('click',e=>{const button=e.target.closest('[data-surface]');if(!button)return;state.surface=button.dataset.surface;document.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));document.querySelectorAll('.preview').forEach(p=>p.className=`preview surface-${state.surface}`);});
+    ['distance','duration','pace','elevation'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+    document.getElementById('route-file').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{state.routeImage=reader.result;document.getElementById('route-hint').textContent=`Using ${file.name} in all 33 designs.`;render();};reader.readAsDataURL(file);});
+    document.getElementById('close-detail').addEventListener('click',()=>document.getElementById('detail').close());
+    document.getElementById('detail-png').addEventListener('click',()=>downloadPng(state.selected));
+    document.getElementById('detail-svg').addEventListener('click',()=>downloadSvg(state.selected));
+    render();
+  </script>
+</body>
+</html>
