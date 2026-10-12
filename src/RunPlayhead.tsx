@@ -29,8 +29,7 @@ export function RunPlayhead(props: Props) {
     const duration = Math.max(0, end - start);
     if (!duration || trackWidth <= THUMB_SIZE) return;
     const fraction = Math.max(0, Math.min(1, (x - THUMB_SIZE / 2) / (trackWidth - THUMB_SIZE)));
-    const step = duration / STEPS;
-    pending.current = start + Math.min(duration, Math.round(fraction * STEPS) * step);
+    pending.current = start + fraction * duration;
     if (frame.current == null) frame.current = requestAnimationFrame(flush);
   };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StatusBar, Switch, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
@@ -8,8 +8,9 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
-import { clock, cropRun, km, pace, originalRun, routePath, Run, stats } from './src/run';
-import { addLocations, getActive, getHistory, saveRun, setActive, startTracking, stopTracking, updateRun } from './src/tracking';
+import { clock, cropRun, km, pace, originalRun, Point, routePath, Run, stats } from './src/run';
+import { getRecentPoints, isRecentEnabled, setRecentEnabled, addLocations, getActive, getHistory, saveRun, setActive, startTracking, stopTracking, updateRun } from './src/tracking';
+import { recentActivity, RECENT_WINDOW_MS, retainRecentPoints } from './src/recent';
 import { brandPhoto, brandVideo, focusCamera, setCameraExposure } from './src/videoBrand';
 import { c, st } from './src/styles';
 import { Trends } from './src/Trends';
@@ -19,6 +20,7 @@ import { Awards } from './src/Awards';
 import { RunMap } from './src/RunMap';
 import { RunTrimmer } from './src/RunTrimmer';
 import { RunPlayhead } from './src/RunPlayhead';
+import { DEFAULT_EXPORT_STYLE, EXPORT_STYLES, ExportArtwork, findExportStyle, loadDefaultExportStyle, saveDefaultExportStyle } from './src/exportStyles';
 
 type Tab = 'RUN' | 'HISTORY' | 'AWARDS';
 const PRIVACY_URL = 'https://bormisov.com/runrun/privacy.html';
@@ -45,6 +47,16 @@ function Tile({ label, value, unit, icon, accent = false }: { label: string; val
 }
 
 function Section({ kicker, title, right }: { kicker: string; title: string; right?: React.ReactNode }) { return <View style={st.section}><View><Text style={st.kicker}>{kicker}</Text><Text style={st.sectionTitle}>{title}</Text></View>{right}</View>; }
+
+function StyleChoices({ title, selected, run, onChoose, onClose }: { title: string; selected: string; run: Run; onChoose: (id: string) => void; onClose: () => void }) {
+  return <><View style={st.detailTop}><Text style={st.sectionTitle}>{title}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close style choices" onPress={onClose}><Icon name="close" size={28}/></Pressable></View>
+    <ScrollView contentContainerStyle={{ padding: 14, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 40 }}>
+      {EXPORT_STYLES.map(style => <Pressable key={style.id} accessibilityRole="button" accessibilityLabel={`Select ${style.name}`} accessibilityState={{ selected: style.id === selected }} onPress={() => onChoose(style.id)} style={{ width: '48%', marginBottom: 14, backgroundColor: c.panel, borderWidth: 2, borderColor: style.id === selected ? c.lime : c.line, borderRadius: 14, overflow: 'hidden' }}>
+        <View style={{ backgroundColor: '#374148', alignItems: 'center', overflow: 'hidden' }}><ExportArtwork run={run} styleId={style.id} width={145} height={193}/></View>
+        <View style={{ padding: 10 }}><Text style={{ color: c.lime, fontSize: 10, fontWeight: '900' }}>{style.id} / {style.family}</Text><Text style={{ color: c.white, fontSize: 13, fontWeight: '900', marginTop: 3 }}>{style.name}</Text></View>
+      </Pressable>)}
+    </ScrollView></>;
+}
 
 function Camera({ visible, onClose, onError }: { visible: boolean; onClose: () => void; onError: (x: string) => void }) {
   const [cameraPermission, askCamera] = useCameraPermissions();
@@ -253,23 +265,111 @@ function Main() {
   const [cropEnd, setCropEnd] = useState(0);
   const [scrubTime, setScrubTime] = useState(0);
   const [shareRun, setShareRun] = useState<Run | null>(null);
+  const [exportStyle, setExportStyle] = useState(DEFAULT_EXPORT_STYLE);
+  const [defaultExportStyle, setDefaultExportStyle] = useState(DEFAULT_EXPORT_STYLE);
+  const [stylePicker, setStylePicker] = useState<'export' | 'default' | null>(null);
   const [stopDialog, setStopDialog] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [trackingMode, setTrackingMode] = useState<'background' | 'foreground' | null>(null);
+  const [recentEnabled, setRecentEnabledState] = useState(true);
+  const [recentPoints, setRecentPoints] = useState<Point[]>([]);
+  const [recentMode, setRecentMode] = useState<'background' | 'foreground' | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [recentStart, setRecentStart] = useState(0);
+  const [recentEnd, setRecentEnd] = useState(0);
+  const [recentPreview, setRecentPreview] = useState(0);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now());
   const watch = useRef<Location.LocationSubscription | null>(null);
   const shareRef = useRef<View>(null);
-  useEffect(() => { (async () => { const run = await getActive(); setActiveRun(run); setHistory(await getHistory()); if (run) { const background = await Location.hasStartedLocationUpdatesAsync('runrun.location.v1').catch(() => false); setTrackingMode(background ? 'background' : 'foreground'); if (!background) { const permission = await Location.getForegroundPermissionsAsync(); if (permission.granted) watch.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 }, async loc => addLocations([loc])); } } })(); }, []);
+  useEffect(() => { loadDefaultExportStyle().then(id => { setDefaultExportStyle(id); setExportStyle(id); }).catch(e => setError(String(e))); }, []);
+  async function ensureForegroundWatch() {
+    if (!watch.current) watch.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 10 }, loc => { addLocations([loc]).catch(e => setError(String(e))); });
+  }
+  async function beginLocation(allowBackground = true) {
+    const mode = await startTracking(allowBackground);
+    if (mode === 'foreground') await ensureForegroundWatch();
+    else { watch.current?.remove(); watch.current = null; }
+    return mode;
+  }
+  useEffect(() => { (async () => {
+    const run = await getActive();
+    const enabled = await isRecentEnabled();
+    setActiveRun(run); setHistory(await getHistory()); setRecentEnabledState(enabled);
+    setRecentPoints(await getRecentPoints());
+    if (!run && !enabled) return;
+    try {
+      let allowBackground = true;
+      if (enabled && Platform.OS === 'android') {
+        const permission = await Location.getBackgroundPermissionsAsync();
+        if (!permission.granted) {
+          const agreed = await new Promise<boolean>(resolve => Alert.alert('24-hour location history',
+            'RUNRUN saves your location in the background, even when the app is closed, so you can create an activity from any part of the last 24 hours. Old points are deleted automatically. Turn this off in Settings at any time.',
+            [{ text: 'Turn off', onPress: () => resolve(false) }, { text: 'Continue', onPress: () => resolve(true) }], { cancelable: false }));
+          if (!agreed) { await setRecentEnabled(false); setRecentEnabledState(false); if (!run) return; allowBackground = false; }
+        }
+      }
+      const mode = await beginLocation(allowBackground);
+      if (run) setTrackingMode(mode);
+      if (enabled && allowBackground) setRecentMode(mode);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not start location history'); }
+  })(); }, []);
   useEffect(() => { const id = setInterval(async () => { setNow(Date.now()); setActiveRun(await getActive()); }, 1000); return () => clearInterval(id); }, []);
+  useEffect(() => { const refresh = () => getRecentPoints().then(setRecentPoints).catch(e => setError(String(e)));
+    const id = setInterval(refresh, 60_000);
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
+    return () => { clearInterval(id); subscription.remove(); watch.current?.remove(); };
+  }, []);
   const current = active ? stats(active, now) : null;
   const original = useMemo(() => selected ? originalRun(selected) : null, [selected]);
   const draft = useMemo(() => selected ? cropRun(selected, cropStart, cropEnd) : null, [selected, cropStart, cropEnd]);
   const draftStats = useMemo(() => draft ? stats(draft) : null, [draft]);
   const previewTime = Math.max(cropStart, Math.min(scrubTime, cropEnd));
+  const availableRecent = useMemo(() => retainRecentPoints(recentPoints, now), [recentPoints, now]);
+  const recentSource: Run | null = availableRecent.length >= 2 ? { id: 'recent-preview', startedAt: availableRecent[0].timestamp, endedAt: availableRecent.at(-1)!.timestamp, points: availableRecent } : null;
+  const recentDraft = recentSource ? recentActivity(availableRecent, recentStart, recentEnd, now) : null;
+  async function toggleRecent(enabled: boolean) {
+    setBusy(true); setError('');
+    try {
+      if (enabled) {
+        await setRecentEnabled(true);
+        let mode: 'background' | 'foreground';
+        try { mode = await beginLocation(); }
+        catch (e) { await setRecentEnabled(false); throw e; }
+        setRecentMode(mode); setRecentEnabledState(true);
+      } else {
+        await setRecentEnabled(false);
+        setRecentEnabledState(false); setRecentPoints([]); setRecentOpen(false); setRecentMode(null);
+        if (!active) { watch.current?.remove(); watch.current = null; await stopTracking(); }
+      }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not change location setting'); }
+    finally { setBusy(false); }
+  }
+  async function openRecent() {
+    try {
+      const points = await getRecentPoints();
+      setRecentPoints(points);
+      if (points.length < 2) return;
+      setRecentStart(points[0].timestamp); setRecentEnd(points.at(-1)!.timestamp);
+      setRecentPreview(points[0].timestamp); setRecentOpen(true);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not open recent locations'); }
+  }
+  async function createRecent() {
+    setBusy(true);
+    try {
+      const points = await getRecentPoints();
+      const run = recentActivity(points, recentStart, recentEnd);
+      if (!run) throw new Error('This fragment is no longer within the last 24 hours. Select a newer fragment.');
+      await saveRun(run);
+      setHistory(await getHistory()); setRecentOpen(false); setTab('HISTORY'); openRun(run);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not create activity'); }
+    finally { setBusy(false); }
+  }
   function openRun(run: Run) {
     setSelected(run);
+    setExportStyle(defaultExportStyle);
     setCropStart(run.startedAt);
     setCropEnd(run.endedAt ?? Date.now());
     setScrubTime(run.startedAt);
@@ -284,7 +384,7 @@ function Main() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save crop'); }
   }
   async function start() {
-    const allowBackground = Platform.OS === 'android' ? await new Promise<boolean | null>(resolve => {
+    const allowBackground = Platform.OS === 'android' && !recentEnabled ? await new Promise<boolean | null>(resolve => {
       Alert.alert(
         'Location during a run',
         'RUNRUN collects location data to record your route, distance and speed during an active run, even when the app is closed or not in use. Your routes stay on this device. Choose "Keep recording" for background tracking, or "While open" to record only while RUNRUN is open.',
@@ -301,15 +401,15 @@ function Main() {
     try {
       const run: Run = { id: String(Date.now()), startedAt: Date.now(), points: [] };
       await setActive(run);
-      const mode = await startTracking(allowBackground); setTrackingMode(mode);
-      if (mode === 'foreground') watch.current = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 }, async loc => addLocations([loc]));
+      const mode = await beginLocation(allowBackground); setTrackingMode(mode);
       setActiveRun(run);
     } catch (e) { await setActive(null); setError(e instanceof Error ? e.message : 'Could not start GPS'); } finally { setBusy(false); }
   }
   async function finish(discard = false) {
     setBusy(true);
     try {
-      watch.current?.remove(); watch.current = null; await stopTracking();
+      if (!recentEnabled) { watch.current?.remove(); watch.current = null; }
+      await stopTracking();
       const run = await getActive();
       if (run && !discard) { const done = { ...run, endedAt: Date.now() }; await saveRun(done); setHistory(await getHistory()); }
       await setActive(null); setActiveRun(null); setStopDialog(false); setTrackingMode(null);
@@ -320,17 +420,51 @@ function Main() {
     setShareRun(run);
     setTimeout(async () => { try { if (shareRef.current) { const uri = await captureRef(shareRef.current, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1440 }); if (save) { await MediaLibrary.saveToLibraryAsync(uri); Alert.alert('Saved', 'Transparent route PNG is in Photos.'); } else await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' }); } } catch (e) { Alert.alert('Could not export route', e instanceof Error ? e.message : 'Could not export route'); } finally { setShareRun(null); } }, 200);
   }
-  return <SafeAreaView style={st.safe} edges={['top', 'bottom']}><StatusBar barStyle="light-content" backgroundColor={c.bg}/><View style={st.topbar}><Brand/><View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}><Pressable accessibilityRole="link" accessibilityLabel="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL).catch(() => Alert.alert('Could not open privacy policy', PRIVACY_URL))}><Text style={{ color: c.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>PRIVACY</Text></Pressable><Pressable style={st.cameraButton} onPress={() => setCameraOpen(true)}><Icon name="camera-outline"/></Pressable></View></View>
+  function chooseExportStyle(id: string) {
+    setExportStyle(id);
+    if (stylePicker === 'default') {
+      setDefaultExportStyle(id);
+      saveDefaultExportStyle(id).catch(e => setError(String(e)));
+    }
+    setStylePicker(null);
+  }
+  return <SafeAreaView style={st.safe} edges={['top', 'bottom']}><StatusBar barStyle="light-content" backgroundColor={c.bg}/><View style={st.topbar}><Brand/><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => setSettingsOpen(true)}><Icon name="settings-outline"/></Pressable><Pressable accessibilityRole="link" accessibilityLabel="Privacy policy" onPress={() => Linking.openURL(PRIVACY_URL).catch(() => Alert.alert('Could not open privacy policy', PRIVACY_URL))}><Text style={{ color: c.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>PRIVACY</Text></Pressable><Pressable style={st.cameraButton} onPress={() => setCameraOpen(true)}><Icon name="camera-outline"/></Pressable></View></View>
     <ScrollView contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-      {tab === 'RUN' && <><View style={st.hero}><Text style={st.kicker}>THE ROAD IS YOURS  /  001</Text><Text style={st.heroTitle}>CHASE THE<Text style={{ color: c.lime }}> NEXT</Text>{'\n'}VERSION OF YOU.</Text><Text style={st.heroSub}>Record every stride. Own every mile.</Text></View>{(active?.points.length || (!active && history[0]?.points.length)) ? (() => { const shown = active?.points.length ? active : history[0]; return <RunMap original={shown} selected={shown} time={shown.points.at(-1)!.timestamp} height={226}/>; })() : <Route run={active}/> }<View style={{ height: 24 }}/><Section kicker={active ? 'SESSION IN PROGRESS' : 'READY WHEN YOU ARE'} title={active ? 'Live activity' : 'Your dashboard'} right={<View style={st.gpsBadge}><View style={st.dot}/><Text style={st.gpsText}>{active ? trackingMode === 'background' ? 'GPS ON' : 'GPS · OPEN APP' : 'GPS READY'}</Text></View>}/>{active && current ? <><View style={st.tiles}><Tile label="DISTANCE" value={km(current.distance)} unit="KM" icon="navigate-outline" accent/><Tile label="DURATION" value={clock(current.seconds)} unit="" icon="time-outline"/><Tile label="CURRENT PACE" value={pace(current.currentSpeed)} unit="MIN/KM" icon="speedometer-outline"/><Tile label="ELEVATION GAIN" value={String(Math.round(current.ascent))} unit="M" icon="trending-up-outline"/></View><View style={st.strip}><View><Label>AVG PACE</Label><Text style={st.stripNum}>{pace(current.avgSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>BEST PACE</Label><Text style={st.stripNum}>{pace(current.maxSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>DESCENT</Label><Text style={st.stripNum}>{Math.round(current.descent)} <Text style={st.stripUnit}>M</Text></Text></View></View></> : <View style={st.summary}><View><Label>TOTAL DISTANCE</Label><Text style={st.summaryNum}>{km(history.reduce((n, r) => n + stats(r).distance, 0))}<Text style={st.summaryUnit}> KM</Text></Text></View><View style={st.summaryDivider}/><View><Label>RUNS DONE</Label><Text style={st.summaryNum}>{String(history.length).padStart(2, '0')}</Text></View></View>}{!!error && <Text style={st.error}>{error}</Text>}<View style={{ height: 100 }}/></>}
+      {tab === 'RUN' && <><View style={st.hero}><Text style={st.kicker}>THE ROAD IS YOURS  /  001</Text><Text style={st.heroTitle}>CHASE THE<Text style={{ color: c.lime }}> NEXT</Text>{'\n'}VERSION OF YOU.</Text><Text style={st.heroSub}>Record every stride. Own every mile.</Text></View>{(active?.points.length || (!active && history[0]?.points.length)) ? (() => { const shown = active?.points.length ? active : history[0]; return <RunMap original={shown} selected={shown} time={shown.points.at(-1)!.timestamp} height={226}/>; })() : <Route run={active}/> }<View style={{ height: 24 }}/><Section kicker={active ? 'SESSION IN PROGRESS' : 'READY WHEN YOU ARE'} title={active ? 'Live activity' : 'Your dashboard'} right={<View style={st.gpsBadge}><View style={st.dot}/><Text style={st.gpsText}>{active ? trackingMode === 'background' ? 'GPS ON' : 'GPS · OPEN APP' : 'GPS READY'}</Text></View>}/>{active && current ? <><View style={st.tiles}><Tile label="DISTANCE" value={km(current.distance)} unit="KM" icon="navigate-outline" accent/><Tile label="DURATION" value={clock(current.seconds)} unit="" icon="time-outline"/><Tile label="CURRENT PACE" value={pace(current.currentSpeed)} unit="MIN/KM" icon="speedometer-outline"/><Tile label="ELEVATION GAIN" value={String(Math.round(current.ascent))} unit="M" icon="trending-up-outline"/></View><View style={st.strip}><View><Label>AVG PACE</Label><Text style={st.stripNum}>{pace(current.avgSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>BEST PACE</Label><Text style={st.stripNum}>{pace(current.maxSpeed)} <Text style={st.stripUnit}>MIN/KM</Text></Text></View><View><Label>DESCENT</Label><Text style={st.stripNum}>{Math.round(current.descent)} <Text style={st.stripUnit}>M</Text></Text></View></View></> : <View style={st.summary}><View><Label>TOTAL DISTANCE</Label><Text style={st.summaryNum}>{km(history.reduce((n, r) => n + stats(r).distance, 0))}<Text style={st.summaryUnit}> KM</Text></Text></View><View style={st.summaryDivider}/><View><Label>RUNS DONE</Label><Text style={st.summaryNum}>{String(history.length).padStart(2, '0')}</Text></View></View>}{recentEnabled && <View style={st.cropCard}><View style={st.cropRow}><Text style={st.cropTitle}>LAST 24 HOURS</Text><Text style={st.cropTime}>{availableRecent.length} POINTS</Text></View><Text style={st.cropHint}>{recentMode === 'background' ? 'Location is recording in the background.' : recentMode === 'foreground' ? 'Recording while RUNRUN is open. Enable background location in device settings for continuous capture.' : 'Allow location access to start recording.'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Create activity from last 24 hours" disabled={availableRecent.length < 2} style={[st.gpxButton, availableRecent.length < 2 && { opacity: 0.45 }]} onPress={openRecent}><Text style={st.gpxText}>CREATE FROM LAST 24 HOURS</Text></Pressable></View>}{!!error && <Text style={st.error}>{error}</Text>}<View style={{ height: 100 }}/></>}
       {tab === 'HISTORY' && <><Section kicker="THE WORK YOU PUT IN" title="Run history"/>{history.length ? history.map((r, i) => { const x = stats(r); return <Pressable key={r.id} style={st.historyCard} onPress={() => openRun(r)}><View style={st.historyIndex}><Text style={st.historyIndexText}>{String(history.length - i).padStart(2, '0')}</Text></View><View style={{ flex: 1 }}><Text style={st.historyTitle}>{new Date(r.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()} RUN</Text><Text style={st.historyMeta}>{km(x.distance)} KM  ·  {clock(x.seconds)}  ·  +{Math.round(x.ascent)} M</Text></View><Icon name="chevron-forward" color={c.muted}/></Pressable>; }) : <View style={st.empty}><Icon name="footsteps-outline" size={44} color={c.lime}/><Text style={st.emptyTitle}>NO RUNS YET</Text><Text style={st.emptyDetail}>Start your first activity to see it here.</Text></View>}<View style={{ height: 90 }}/></>}
       {tab === 'AWARDS' && <Awards runs={history}/>}
     </ScrollView>
     {tab === 'RUN' && <View style={st.actionWrap}><Pressable disabled={busy} style={[st.startButton, active && { backgroundColor: c.red }]} onPress={() => active ? setStopDialog(true) : start()}>{busy ? <ActivityIndicator color={c.bg}/> : <><Icon name={active ? 'stop' : 'play'} color={c.bg} size={25}/><Text style={st.startText}>{active ? 'STOP RUN' : 'START RUN'}</Text><Icon name="arrow-forward" color={c.bg}/></>}</Pressable></View>}
     <View style={st.tabbar}>{(['RUN', 'HISTORY', 'AWARDS'] as Tab[]).map(t => <Pressable key={t} style={st.tab} onPress={() => setTab(t)}><Icon name={t === 'RUN' ? 'pulse-outline' : t === 'HISTORY' ? 'albums-outline' : 'trophy-outline'} color={t === tab ? c.lime : c.muted}/><Text style={[st.tabText, t === tab && { color: c.lime }]}>{t}</Text></Pressable>)}</View>
     <StopDialog visible={stopDialog} busy={busy} onClose={() => setStopDialog(false)} onFinish={() => finish()} onDiscard={() => finish(true)}/>
-    <Modal visible={!!selected} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setSelected(null)}>
+    <Modal visible={settingsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => stylePicker === 'default' ? setStylePicker(null) : setSettingsOpen(false)}>
+      <SafeAreaProvider><SafeAreaView style={[st.safe, stylePicker !== 'default' && { padding: 24 }]} edges={['top', 'bottom']}>
+        {stylePicker === 'default' ? <StyleChoices title="DEFAULT STYLE" selected={defaultExportStyle} run={draft ?? selected ?? history[0] ?? { id: 'sample', startedAt: 0, endedAt: 3754000, points: [] }} onChoose={chooseExportStyle} onClose={() => setStylePicker(null)}/> : <>
+        <View style={st.cropRow}><Text style={st.sectionTitle}>SETTINGS</Text><Pressable accessibilityRole="button" accessibilityLabel="Close settings" onPress={() => setSettingsOpen(false)}><Icon name="close" size={28}/></Pressable></View>
+        <View style={[st.cropCard, { marginTop: 30 }]}><View style={st.cropRow}><View style={{ flex: 1, paddingRight: 12 }}><Text style={st.cropTitle}>24-HOUR LOCATION HISTORY</Text><Text style={st.cropHint}>Save your route continuously and create an activity from the last 24 hours. Old points are deleted automatically.</Text></View><Switch accessibilityLabel="24-hour location history" value={recentEnabled} disabled={busy} onValueChange={toggleRecent} trackColor={{ true: c.lime }} thumbColor={c.white}/></View><Text style={st.cropHint}>{recentEnabled ? recentMode === 'background' ? 'Recording in the background' : recentMode === 'foreground' ? 'Recording while RUNRUN is open. Allow background location in device settings for continuous recording.' : 'Waiting for location permission' : 'Off. Recent location data is cleared.'}</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Choose default export style" onPress={() => setStylePicker('default')} style={st.cropCard}><View style={st.cropRow}><View><Text style={st.cropTitle}>DEFAULT EXPORT STYLE</Text><Text style={st.cropHint}>{findExportStyle(defaultExportStyle).id} / {findExportStyle(defaultExportStyle).name}</Text></View><Icon name="chevron-forward" color={c.lime}/></View></Pressable>
+        {!!error && <Text style={st.error}>{error}</Text>}
+        </>}
+      </SafeAreaView></SafeAreaProvider>
+    </Modal>
+    <Modal visible={recentOpen} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setRecentOpen(false)}>
+      <SafeAreaProvider><SafeAreaView style={st.safe} edges={['top', 'bottom']}><View style={st.detailTop}><Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => setRecentOpen(false)}><Icon name="arrow-back" size={24}/></Pressable><Brand size={24}/><View style={{ width: 24 }}/></View>
+        <ScrollView contentContainerStyle={st.detailContent}><Text style={st.kicker}>LAST 24 HOURS</Text><Text style={st.detailTitle}>MAKE AN{'\n'}ACTIVITY.</Text>
+          {recentSource && <RunMap original={recentSource} selected={recentDraft ?? recentSource} time={Math.max(recentStart, Math.min(recentPreview, recentEnd))} height={280}/>}
+          {recentSource && <View style={st.cropCard}><View style={st.cropRow}><Text style={st.cropTitle}>CHOOSE A FRAGMENT</Text><Text style={st.cropTime}>{clock(Math.max(0, (recentEnd - recentStart) / 1000))}</Text></View>
+            <Text style={st.cropHint}>Drag the handles to choose any fragment still available in the last 24 hours. The playhead previews your path.</Text>
+            <RunTrimmer minimum={Math.max(recentSource.startedAt, now - RECENT_WINDOW_MS)} maximum={recentSource.endedAt ?? now} start={recentStart} end={recentEnd} onStartChange={setRecentStart} onEndChange={setRecentEnd} onPreview={setRecentPreview}/>
+            <View style={st.cropRow}><Text style={st.cropBoundary}>START  {new Date(recentStart).toLocaleString()}</Text><Text style={st.cropBoundary}>FINISH  {new Date(recentEnd).toLocaleString()}</Text></View>
+            <RunPlayhead start={recentStart} end={recentEnd} value={Math.max(recentStart, Math.min(recentPreview, recentEnd))} onChange={setRecentPreview}/>
+            <Pressable disabled={busy || !recentDraft} style={[st.shareButton, (!recentDraft || busy) && { opacity: 0.4 }]} onPress={createRecent}><Icon name="add-circle-outline" color={c.bg}/><Text style={st.shareText}>CREATE ACTIVITY</Text></Pressable>
+          </View>}
+          {!!error && <Text style={st.error}>{error}</Text>}
+        </ScrollView>
+      </SafeAreaView></SafeAreaProvider>
+    </Modal>
+    <Modal visible={!!selected} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => stylePicker === 'export' ? setStylePicker(null) : setSelected(null)}>
       <SafeAreaProvider><SafeAreaView style={st.safe} edges={['top', 'bottom']}>
+        {stylePicker === 'export' ? <StyleChoices title="EXPORT STYLE" selected={exportStyle} run={draft ?? selected ?? { id: 'sample', startedAt: 0, endedAt: 3754000, points: [] }} onChoose={chooseExportStyle} onClose={() => setStylePicker(null)}/> : <>
         <View style={st.detailTop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back to run history" style={st.detailHeaderButton} onPress={() => setSelected(null)}><Icon name="arrow-back" size={24}/></Pressable>
           <Brand size={24}/>
@@ -359,14 +493,16 @@ function Main() {
             <Tile label="ELEVATION GAIN" value={String(Math.round(draftStats.ascent))} unit="M" icon="trending-up-outline"/>
           </View>
           <Trends run={draft}/>
+          <Pressable accessibilityRole="button" accessibilityLabel="Choose export style" style={st.cropCard} onPress={() => setStylePicker('export')}><View style={st.cropRow}><View><Text style={st.cropTitle}>EXPORT STYLE</Text><Text style={st.cropHint}>{findExportStyle(exportStyle).id} / {findExportStyle(exportStyle).name}</Text></View><Icon name="chevron-forward" color={c.lime}/></View></Pressable>
           <Pressable style={st.shareButton} onPress={() => share(draft, true)}><Icon name="download-outline" color={c.bg}/><Text style={st.shareText}>SAVE TRANSPARENT ROUTE PNG</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => share(draft)}><Icon name="share-social-outline" color={c.white}/><Text style={st.gpxText}>SHARE ROUTE PNG</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => exportGpx(draft).catch(e => setError(e instanceof Error ? e.message : 'Could not export GPX'))}><Icon name="download-outline" color={c.white}/><Text style={st.gpxText}>EXPORT GPX DATA</Text></Pressable>
         </ScrollView>}
+        </>}
       </SafeAreaView></SafeAreaProvider>
     </Modal>
     <Camera visible={cameraOpen} onClose={() => setCameraOpen(false)} onError={setError}/>
-    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={st.shareCanvas}><Brand size={43}/><Text style={st.shareKicker}>RUN DATA / {new Date(shareRun.startedAt).toLocaleDateString()}</Text><Route run={shareRun} height={260} transparent/><View style={st.shareGrid}>{[['DURATION', clock(stats(shareRun).seconds)], ['DISTANCE', km(stats(shareRun).distance) + ' KM'], ['AVG PACE', pace(stats(shareRun).avgSpeed) + ' MIN/KM'], ['ELEVATION GAIN', '+' + Math.round(stats(shareRun).ascent) + ' M']].map(([key, value]) => <View key={key} style={st.shareItem}><Text style={st.shareLabel}>{key}</Text><Text style={st.shareValue}>{value}</Text></View>)}</View><Text style={st.shareFoot}>MOVE DIFFERENT.  /  RUNRUN</Text></View></View>}
+    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={st.shareCanvas}><ExportArtwork run={shareRun} styleId={exportStyle}/></View></View>}
   </SafeAreaView>;
 }
 
