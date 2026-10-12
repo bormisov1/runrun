@@ -4,6 +4,10 @@ Android Google Play build and submission notes: [store/play/README.md](store/pla
 
 Dark running tracker built with Expo / React Native.
 
+## Transparent export design gallery
+
+Open [share-designs/index.html](share-designs/index.html) in a browser to compare all 33 route PNG styles. Edit the four sample run values, upload a route image, and download any design as a transparent PNG or SVG. The same styles are available in the app, where Settings saves the default export style.
+
 ## Run locally
 
 ```sh
