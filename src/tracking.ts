@@ -3,9 +3,10 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { appendPoint, fromLocation, Point, Run } from './run';
 import { appendRecentPoint, retainRecentPoints } from './recent';
+import { createHistoryStore } from './history';
 
 const ACTIVE = 'runrun.active.v1';
-const HISTORY = 'runrun.history.v1';
+const historyStore = createHistoryStore(AsyncStorage);
 const RECENT = 'runrun.recent.v1';
 const RECENT_ENABLED = 'runrun.recent.enabled.v1';
 export const TASK = 'runrun.location.v1';
@@ -41,20 +42,19 @@ export async function getActive(): Promise<Run | null> {
   return raw ? JSON.parse(raw) : null;
 }
 export async function getHistory(): Promise<Run[]> {
-  const raw = await AsyncStorage.getItem(HISTORY);
-  return raw ? JSON.parse(raw) : [];
+  return historyStore.getVisible();
 }
+export const getArchivedHistory = () => historyStore.getArchived();
+export const setRunArchived = (id: string, archived: boolean) => historyStore.setArchived(id, archived);
 export async function setActive(run: Run | null) {
   if (run) await AsyncStorage.setItem(ACTIVE, JSON.stringify(run));
   else await AsyncStorage.removeItem(ACTIVE);
 }
 export async function saveRun(run: Run) {
-  const history = await getHistory();
-  await AsyncStorage.setItem(HISTORY, JSON.stringify([run, ...history]));
+  await historyStore.save(run);
 }
 export async function updateRun(run: Run) {
-  const history = await getHistory();
-  await AsyncStorage.setItem(HISTORY, JSON.stringify(history.map(item => item.id === run.id ? run : item)));
+  await historyStore.update(run);
 }
 export async function addLocations(locations: Location.LocationObject[]) {
   await withLocationLock(async () => {

@@ -1,7 +1,7 @@
 import type * as Location from 'expo-location';
 
 export type Point = { latitude: number; longitude: number; altitude: number | null; timestamp: number; accuracy: number | null; speed: number | null };
-export type Run = { id: string; startedAt: number; endedAt?: number; points: Point[]; source?: { startedAt: number; endedAt: number; points: Point[] } };
+export type Run = { id: string; startedAt: number; endedAt?: number; points: Point[]; archivedAt?: number; source?: { startedAt: number; endedAt: number; points: Point[] } };
 export type Stats = { distance: number; seconds: number; avgSpeed: number; currentSpeed: number; maxSpeed: number; ascent: number; descent: number; minAltitude: number | null; maxAltitude: number | null };
 
 export function fromLocation(location: Location.LocationObject): Point {
@@ -145,7 +145,7 @@ function longestStreak(values: Set<number>): number {
 }
 
 export function achievements(runs: Run[]): Achievement[] {
-  const finished = runs.filter(run => run.endedAt != null && run.endedAt >= run.startedAt);
+  const finished = runs.filter(run => run.archivedAt == null && run.endedAt != null && run.endedAt >= run.startedAt);
   let totalDistance = 0, totalSeconds = 0, totalAscent = 0;
   let longestDistance = 0, longestDuration = 0, highestAscent = 0;
   let morningRuns = 0, weekendRuns = 0;
