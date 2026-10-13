@@ -72,7 +72,7 @@
 <body>
   <main class="shell">
     <header class="top"><div class="brand">RUN<span>RUN</span></div><div class="top-right">Export design study / local only</div></header>
-    <section class="intro"><div><p class="eyebrow">Transparent route PNG / 33 styles</p><h1>One run.<br>33 ways to show it.</h1></div><p>Compare route and stat layouts on a transparent canvas. Change the sample numbers, test a backdrop, or drop in your own route image.</p></section>
+    <section class="intro"><div><p class="eyebrow">Transparent route PNG / 34 styles</p><h1>One run.<br>34 ways to show it.</h1></div><p>Compare route and stat layouts on a transparent canvas. Change the sample numbers, test a backdrop, or drop in your own route image.</p></section>
     <section class="toolbar" aria-label="Preview settings">
       <div class="toolbar-group"><span class="toolbar-label">Preview surface</span><div class="segmented" id="surfaces"><button type="button" data-surface="checker" aria-pressed="true">Grid</button><button type="button" data-surface="dark" aria-pressed="false">Dark</button><button type="button" data-surface="light" aria-pressed="false">Light</button><button type="button" data-surface="photo" aria-pressed="false">Photo</button></div></div>
       <label class="field"><span>Distance · km</span><input id="distance" value="12.48" maxlength="8"></label>
@@ -82,8 +82,8 @@
       <label class="upload">Upload route image<input id="route-file" type="file" accept="image/png,image/webp,image/svg+xml"></label>
       <span class="hint" id="route-hint">A sample route is shown until you choose a local image.</span>
     </section>
-    <div class="section-head"><h2>Explore the concepts</h2><span class="count">33 / 33</span></div>
-    <section class="grid" id="gallery" aria-label="Thirty-three transparent export designs"></section>
+    <div class="section-head"><h2>Explore the concepts</h2><span class="count">34 / 34</span></div>
+    <section class="grid" id="gallery" aria-label="Thirty-four transparent export designs"></section>
     <p class="footer">Sample run data for layout exploration. Downloads are transparent 1080 × 1440 PNGs; the preview backdrop is never included.</p>
   </main>
   <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download transparent PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
@@ -101,7 +101,8 @@
       ['22','Checkpoint','Marker',7,0],['23','Start to Finish','Marker',7,1],['24','Waypoints','Marker',7,2],
       ['25','Race Bib','Poster',8,0],['26','Finish Card','Poster',8,1],['27','The Medal','Poster',8,2],
       ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
-      ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2]
+      ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
+      ['34','Clean Original','Essentials',11,0]
     ];
     const palettes = [
       {ink:'#f5f7f0',accent:'#d8ff3e',second:'#56dce0'},
@@ -150,12 +151,13 @@
         if(variant===1) s=`${bareRoute}${t(360,760,val('distance'),100,p.ink,900,'middle')}${t(360,800,'KM',13,p.accent,800,'middle')}`;
         if(variant===2) s=`${bareRoute}${line(180,790,540,790,p.accent,1)}${t(360,835,`${val('distance')} KM  ·  ${val('duration')}`,25,p.ink,800,'middle')}`;
       }
+      if(layout===11) s+=`${brand(48,102,p)}${route(72,164,576,408,p,variant)}${[0,1,2,3].map(i=>{const d=data()[i],sx=205+(i%2)*310,sy=690+Math.floor(i/2)*141;return `${t(sx,sy-56,d[0],13,p.accent,800,'middle','letter-spacing="1.5"')}${t(sx,sy,`${d[1]}${d[2]?` ${d[2]}`:''}`,42,p.ink,900,'middle')}`}).join('')}`;
 
       return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="960" viewBox="0 0 720 960" role="img" aria-label="${esc(name)} transparent run export with route and four statistics">${s}</svg>`;
     }
     function render() {
       const gallery=document.getElementById('gallery');
-      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / 33</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">Transparent · 1080 × 1440</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
+      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / ${concepts.length}</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">Transparent · 1080 × 1440</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
       if(document.getElementById('detail').open) updateDialog();
     }
     function updateDialog() { const i=state.selected; document.getElementById('detail-title').textContent=`${concepts[i][0]} / ${concepts[i][1]}`; const p=document.getElementById('detail-preview'); p.className=`preview surface-${state.surface}`; p.innerHTML=artwork(i); }
@@ -170,7 +172,7 @@
     document.getElementById('gallery').addEventListener('click',e=>{const open=e.target.closest('[data-open]'),download=e.target.closest('[data-download]');if(open){state.selected=Number(open.dataset.open);updateDialog();document.getElementById('detail').showModal();}if(download)downloadPng(Number(download.dataset.download));});
     document.getElementById('surfaces').addEventListener('click',e=>{const button=e.target.closest('[data-surface]');if(!button)return;state.surface=button.dataset.surface;document.querySelectorAll('[data-surface]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));document.querySelectorAll('.preview').forEach(p=>p.className=`preview surface-${state.surface}`);});
     ['distance','duration','pace','elevation'].forEach(id=>document.getElementById(id).addEventListener('input',render));
-    document.getElementById('route-file').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{state.routeImage=reader.result;document.getElementById('route-hint').textContent=`Using ${file.name} in all 33 designs.`;render();};reader.readAsDataURL(file);});
+    document.getElementById('route-file').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{state.routeImage=reader.result;document.getElementById('route-hint').textContent=`Using ${file.name} in all ${concepts.length} designs.`;render();};reader.readAsDataURL(file);});
     document.getElementById('close-detail').addEventListener('click',()=>document.getElementById('detail').close());
     document.getElementById('detail-png').addEventListener('click',()=>downloadPng(state.selected));
     document.getElementById('detail-svg').addEventListener('click',()=>downloadSvg(state.selected));
