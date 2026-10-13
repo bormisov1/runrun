@@ -16,6 +16,7 @@ export const EXPORT_STYLES: ExportStyle[] = [
   ['25','Race Bib','Poster',8,0],['26','Finish Card','Poster',8,1],['27','The Medal','Poster',8,2],
   ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
   ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
+  ['34','Clean Original','Essentials',11,0],
 ].map(([id,name,family,layout,variant]) => ({ id: String(id), name: String(name), family: String(family), layout: Number(layout), variant: Number(variant) }));
 export const DEFAULT_EXPORT_STYLE = '01';
 const STORAGE_KEY = 'runrun.defaultExportStyle';
@@ -61,6 +62,11 @@ export function ExportArtwork({ run, styleId, width = 360, height = 480 }: Artwo
     case 7: art = <>{brand(48,95)}{line(101,185,101,777,3)}<Circle cx={101} cy={188} r={12} fill={p.accent}/><Circle cx={101} cy={774} r={12} fill={p.ink}/>{route(132,204,528,438)}{grid(255,668,263,109)}</>; break;
     case 8: art = <><Rect x={50} y={50} width={620} height={860} rx={31} fill="#071014" opacity={0.58} stroke={p.accent}/><Rect x={72} y={72} width={576} height={91} rx={13} fill={p.accent}/>{txt(98,132,'RUNRUN',55,'#071014')}{txt(91,204,date,14,p.accent)}{route(105,242,510,348)}{line(89,616,631,616)}{grid(225,692,275,135)}</>; break;
     case 9: art = <>{brand(50,99)}{route(28,110,664,603)}<Rect x={45} y={608} width={630} height={254} rx={21} fill="#071014" opacity={0.73}/>{grid(210,700,306,109)}</>; break;
+    case 11: art = <>{brand()}<Rect x={48} y={110} width={35} height={5} rx={2} fill={p.accent}/>{route(72,164,576,408)}{[0,1,2,3].map(i => {
+      const x = 205 + (i % 2) * 310;
+      const y = 690 + Math.floor(i / 2) * 141;
+      return <G key={i}>{txt(x,y-56,i === 3 ? 'ELEVATION GAIN' : labels[i],13,p.accent,'middle')}{txt(x,y,`${values[i]}${units[i] ? ` ${units[i]}` : ''}`,42,p.ink,'middle')}</G>;
+    })}</>; break;
     default: art = style.variant === 0 ? <>{route(95,240,530,445,true)}{txt(360,777,values[0],56,p.ink,'middle')}{txt(360,815,'KM',13,p.accent,'middle')}</> : style.variant === 1 ? <>{route(110,200,500,415,true)}{txt(360,760,values[0],100,p.ink,'middle')}{txt(360,800,'KM',13,p.accent,'middle')}</> : <>{route(95,235,530,445,true)}{line(180,790,540,790,1)}{txt(360,835,`${values[0]} KM  ·  ${values[1]}`,25,p.ink,'middle')}</>;
   }
   // Frames belong to the original concept families. Minimal designs stay open and transparent.
