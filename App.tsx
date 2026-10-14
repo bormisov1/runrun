@@ -21,7 +21,7 @@ import { RunMap } from './src/RunMap';
 import { RunTrimmer } from './src/RunTrimmer';
 import { RunPlayhead } from './src/RunPlayhead';
 import { ActivityRow } from './src/ActivityRow';
-import { DEFAULT_EXPORT_STYLE, EXPORT_STYLES, ExportArtwork, findExportStyle, loadDefaultExportStyle, saveDefaultExportStyle } from './src/exportStyles';
+import { DEFAULT_EXPORT_STYLE, EXPORT_STYLES, ExportArtwork, findExportStyle, isStoryPoster, loadDefaultExportStyle, saveDefaultExportStyle } from './src/exportStyles';
 
 type Tab = 'RUN' | 'HISTORY' | 'AWARDS';
 const PRIVACY_URL = 'https://bormisov.com/runrun/privacy.html';
@@ -53,7 +53,7 @@ function StyleChoices({ title, selected, run, onChoose, onClose }: { title: stri
   return <><View style={st.detailTop}><Text style={st.sectionTitle}>{title}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close style choices" onPress={onClose}><Icon name="close" size={28}/></Pressable></View>
     <ScrollView contentContainerStyle={{ padding: 14, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 40 }}>
       {EXPORT_STYLES.map(style => <Pressable key={style.id} accessibilityRole="button" accessibilityLabel={`Select ${style.name}`} accessibilityState={{ selected: style.id === selected }} onPress={() => onChoose(style.id)} style={{ width: '48%', marginBottom: 14, backgroundColor: c.panel, borderWidth: 2, borderColor: style.id === selected ? c.lime : c.line, borderRadius: 14, overflow: 'hidden' }}>
-        <View style={{ backgroundColor: '#374148', alignItems: 'center', overflow: 'hidden' }}><ExportArtwork run={run} styleId={style.id} width={145} height={193}/></View>
+        <View style={{ backgroundColor: '#374148', alignItems: 'center', overflow: 'hidden', height: 258, justifyContent: 'center' }}><ExportArtwork run={run} styleId={style.id} width={145} height={isStoryPoster(style.id) ? 258 : 193}/></View>
         <View style={{ padding: 10 }}><Text style={{ color: c.lime, fontSize: 10, fontWeight: '900' }}>{style.id} / {style.family}</Text><Text style={{ color: c.white, fontSize: 13, fontWeight: '900', marginTop: 3 }}>{style.name}</Text></View>
       </Pressable>)}
     </ScrollView></>;
@@ -432,7 +432,7 @@ function Main() {
   }
   async function share(run: Run, save = false) {
     setShareRun(run);
-    setTimeout(async () => { try { if (shareRef.current) { const uri = await captureRef(shareRef.current, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1440 }); if (save) { await MediaLibrary.saveToLibraryAsync(uri); Alert.alert('Saved', 'Transparent route PNG is in Photos.'); } else await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' }); } } catch (e) { Alert.alert('Could not export route', e instanceof Error ? e.message : 'Could not export route'); } finally { setShareRun(null); } }, 200);
+    setTimeout(async () => { try { if (shareRef.current) { const uri = await captureRef(shareRef.current, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: isStoryPoster(exportStyle) ? 1920 : 1440 }); if (save) { await MediaLibrary.saveToLibraryAsync(uri); Alert.alert('Saved', isStoryPoster(exportStyle) ? 'Story poster is in Photos.' : 'Transparent route PNG is in Photos.'); } else await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' }); } } catch (e) { Alert.alert('Could not export route', e instanceof Error ? e.message : 'Could not export route'); } finally { setShareRun(null); } }, 200);
   }
   function chooseExportStyle(id: string) {
     setExportStyle(id);
@@ -516,7 +516,7 @@ function Main() {
           </View>
           <Trends run={draft}/>
           <Pressable accessibilityRole="button" accessibilityLabel="Choose export style" style={st.cropCard} onPress={() => setStylePicker('export')}><View style={st.cropRow}><View><Text style={st.cropTitle}>EXPORT STYLE</Text><Text style={st.cropHint}>{findExportStyle(exportStyle).id} / {findExportStyle(exportStyle).name}</Text></View><Icon name="chevron-forward" color={c.lime}/></View></Pressable>
-          <Pressable style={st.shareButton} onPress={() => share(draft, true)}><Icon name="download-outline" color={c.bg}/><Text style={st.shareText}>SAVE TRANSPARENT ROUTE PNG</Text></Pressable>
+          <Pressable style={st.shareButton} onPress={() => share(draft, true)}><Icon name="download-outline" color={c.bg}/><Text style={st.shareText}>{isStoryPoster(exportStyle) ? 'SAVE STORY POSTER PNG' : 'SAVE TRANSPARENT ROUTE PNG'}</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => share(draft)}><Icon name="share-social-outline" color={c.white}/><Text style={st.gpxText}>SHARE ROUTE PNG</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => exportGpx(draft).catch(e => setError(e instanceof Error ? e.message : 'Could not export GPX'))}><Icon name="download-outline" color={c.white}/><Text style={st.gpxText}>EXPORT GPX DATA</Text></Pressable>
         </ScrollView>}
@@ -524,7 +524,7 @@ function Main() {
       </SafeAreaView></SafeAreaProvider>
     </Modal>
     <Camera visible={cameraOpen} onClose={() => setCameraOpen(false)} onError={setError}/>
-    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={st.shareCanvas}><ExportArtwork run={shareRun} styleId={exportStyle}/></View></View>}
+    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={[st.shareCanvas, isStoryPoster(exportStyle) && { height: 640, backgroundColor: '#000000' }]}><ExportArtwork run={shareRun} styleId={exportStyle}/></View></View>}
   </SafeAreaView>;
 }
 

@@ -17,8 +17,10 @@ export const EXPORT_STYLES: ExportStyle[] = [
   ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
   ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
   ['34','Clean Original','Essentials',11,0],
+  ['35','Night Run','Story Poster',12,0],['36','Night Run / Route','Story Poster',12,1],['37','Night Run / Split','Story Poster',12,2],
 ].map(([id,name,family,layout,variant]) => ({ id: String(id), name: String(name), family: String(family), layout: Number(layout), variant: Number(variant) }));
 export const DEFAULT_EXPORT_STYLE = '01';
+export const isStoryPoster = (id: string) => findExportStyle(id).layout === 12;
 const STORAGE_KEY = 'runrun.defaultExportStyle';
 export function findExportStyle(id: string) { return EXPORT_STYLES.find(style => style.id === id) ?? EXPORT_STYLES[0]; }
 export async function loadDefaultExportStyle() { return findExportStyle(await AsyncStorage.getItem(STORAGE_KEY) ?? DEFAULT_EXPORT_STYLE).id; }
@@ -31,8 +33,10 @@ const palettes = [
 ];
 
 type ArtworkProps = { run: Run; styleId: string; width?: number; height?: number };
-export function ExportArtwork({ run, styleId, width = 360, height = 480 }: ArtworkProps) {
+export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProps) {
   const style = findExportStyle(styleId);
+  const poster = style.layout === 12;
+  const artHeight = height ?? (poster ? width * 16 / 9 : width * 4 / 3);
   const p = palettes[style.variant];
   const s = stats(run);
   const values = [km(s.distance), clock(s.seconds), pace(s.avgSpeed), `+${Math.round(s.ascent)}`];
@@ -50,6 +54,29 @@ export function ExportArtwork({ run, styleId, width = 360, height = 480 }: Artwo
   </G>;
   const grid = (x: number, y: number, gapX = 310, gapY = 140) => [0,1,2,3].map(i => stat(i,x+(i%2)*gapX,y+Math.floor(i/2)*gapY,42));
   const date = new Date(run.startedAt).toLocaleDateString(undefined, { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+  if (poster) {
+    const orange = '#FC4C02';
+    const white = '#FFFFFF';
+    const totalMinutes = Math.round(s.seconds / 60);
+    const duration = totalMinutes >= 60 ? `${Math.floor(totalMinutes / 60)}h ${String(totalMinutes % 60).padStart(2, '0')}m` : `${totalMinutes}m`;
+    const posterStats = [
+      ['Distance', `${values[0]} km`],
+      ['Pace', `${values[2]} /km`],
+      ['Time', duration],
+    ];
+    const label = (x: number, y: number, value: string, anchor: 'start' | 'middle' = 'middle') => txt(x, y, value, 29, white, anchor, '700');
+    const number = (x: number, y: number, value: string, size = 61, anchor: 'start' | 'middle' = 'middle') => txt(x, y, value, size, white, anchor, '900');
+    const posterRoute = (x: number, y: number, w: number, h: number) => <G transform={`translate(${x} ${y}) scale(${w / 420} ${h / 360})`}><Path d={trace} fill="none" stroke={orange} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round"/></G>;
+    let content: React.ReactNode;
+    if (style.variant === 0) {
+      content = <>{posterStats.map(([title, value], i) => <G key={title}>{label(360, 250 + i * 150, title)}{number(360, 319 + i * 150, value)}</G>)}{posterRoute(190, 750, 340, 142)}{number(360, 1035, 'RUNRUN', 62)}</>;
+    } else if (style.variant === 1) {
+      content = <>{label(360, 206, 'Distance')}{number(360, 285, posterStats[0][1], 75)}{posterRoute(105, 415, 510, 210)}{label(200, 754, 'Pace')}{label(520, 754, 'Time')}{number(200, 816, posterStats[1][1], 44)}{number(520, 816, posterStats[2][1], 44)}{number(360, 1060, 'RUNRUN', 62)}</>;
+    } else {
+      content = <>{txt(88, 184, date, 22, white, 'start', '700')}{posterStats.map(([title, value], i) => <G key={title}>{label(88, 273 + i * 174, title, 'start')}{number(88, 340 + i * 174, value, 67, 'start')}</G>)}{posterRoute(190, 823, 440, 165)}{number(88, 1110, 'RUNRUN', 62, 'start')}</>;
+    }
+    return <Svg width={width} height={artHeight} viewBox="0 0 720 1280" accessibilityLabel={`${style.name} black story poster with route and run statistics`}><Rect x={0} y={0} width={720} height={1280} fill="#000000"/>{content}</Svg>;
+  }
   let art: React.ReactNode;
   switch (style.layout) {
     case 0: art = <>{brand()}{txt(48,143,`RUN DATA / ${date}`,14,p.accent)}{route(72,164,576,408)}{grid(205,687,310,141)}{txt(52,915,'MOVE DIFFERENT. / RUNRUN',13,p.accent)}</>; break;
@@ -71,5 +98,5 @@ export function ExportArtwork({ run, styleId, width = 360, height = 480 }: Artwo
   }
   // Frames belong to the original concept families. Minimal designs stay open and transparent.
   const frame = style.layout < 10 && style.variant === 1 ? <Path d="M 42 130 V 42 H 155 M 565 42 H 678 V 140 M 42 808 V 918 H 152 M 565 918 H 678 V 810" fill="none" stroke={p.accent} strokeWidth={3} opacity={0.85}/> : style.layout < 10 && style.variant === 2 ? <><Rect x={28} y={28} width={664} height={904} rx={28} fill="none" stroke={p.accent} strokeWidth={2}/>{line(45,82,675,82)}</> : null;
-  return <Svg width={width} height={height} viewBox="0 0 720 960" accessibilityLabel={`${style.name} transparent route export`}>{frame}{art}</Svg>;
+  return <Svg width={width} height={artHeight} viewBox="0 0 720 960" accessibilityLabel={`${style.name} transparent route export`}>{frame}{art}</Svg>;
 }

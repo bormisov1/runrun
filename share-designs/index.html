@@ -72,7 +72,7 @@
 <body>
   <main class="shell">
     <header class="top"><div class="brand">RUN<span>RUN</span></div><div class="top-right">Export design study / local only</div></header>
-    <section class="intro"><div><p class="eyebrow">Transparent route PNG / 34 styles</p><h1>One run.<br>34 ways to show it.</h1></div><p>Compare route and stat layouts on a transparent canvas. Change the sample numbers, test a backdrop, or drop in your own route image.</p></section>
+    <section class="intro"><div><p class="eyebrow">Route PNG / 37 styles</p><h1>One run.<br>37 ways to show it.</h1></div><p>Compare route and stat layouts. The story posters use a black 9:16 canvas; the earlier styles remain transparent.</p></section>
     <section class="toolbar" aria-label="Preview settings">
       <div class="toolbar-group"><span class="toolbar-label">Preview surface</span><div class="segmented" id="surfaces"><button type="button" data-surface="checker" aria-pressed="true">Grid</button><button type="button" data-surface="dark" aria-pressed="false">Dark</button><button type="button" data-surface="light" aria-pressed="false">Light</button><button type="button" data-surface="photo" aria-pressed="false">Photo</button></div></div>
       <label class="field"><span>Distance · km</span><input id="distance" value="12.48" maxlength="8"></label>
@@ -82,9 +82,9 @@
       <label class="upload">Upload route image<input id="route-file" type="file" accept="image/png,image/webp,image/svg+xml"></label>
       <span class="hint" id="route-hint">A sample route is shown until you choose a local image.</span>
     </section>
-    <div class="section-head"><h2>Explore the concepts</h2><span class="count">34 / 34</span></div>
-    <section class="grid" id="gallery" aria-label="Thirty-four transparent export designs"></section>
-    <p class="footer">Sample run data for layout exploration. Downloads are transparent 1080 × 1440 PNGs; the preview backdrop is never included.</p>
+    <div class="section-head"><h2>Explore the concepts</h2><span class="count">37 / 37</span></div>
+    <section class="grid" id="gallery" aria-label="Thirty-seven run export designs"></section>
+    <p class="footer">Sample run data for layout exploration. Story posters download at 1080 × 1920 with a black background; earlier designs download as transparent 1080 × 1440 PNGs.</p>
   </main>
   <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download transparent PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
   <script>
@@ -102,7 +102,8 @@
       ['25','Race Bib','Poster',8,0],['26','Finish Card','Poster',8,1],['27','The Medal','Poster',8,2],
       ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
       ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
-      ['34','Clean Original','Essentials',11,0]
+      ['34','Clean Original','Essentials',11,0],
+      ['35','Night Run','Story Poster',12,0],['36','Night Run / Route','Story Poster',12,1],['37','Night Run / Split','Story Poster',12,2]
     ];
     const palettes = [
       {ink:'#f5f7f0',accent:'#d8ff3e',second:'#56dce0'},
@@ -133,6 +134,17 @@
     function frame(p,variant) { return variant===0?'':variant===1?`<path d="M 42 130 V 42 H 155 M 565 42 H 678 V 140 M 42 808 V 918 H 152 M 565 918 H 678 V 810" fill="none" stroke="${p.accent}" stroke-width="3" opacity=".85"/>`:`${rect(28,28,664,904,'none',28,1,p.accent)}${line(45,82,675,82,p.accent,2,.6)}`; }
     function artwork(index) {
       const [num,name,family,layout,variant]=concepts[index],p=palettes[variant];
+      if(layout===12) {
+        const value=[`${val('distance')} km`,`${val('pace')} /km`,val('duration')];
+        const label=(x,y,v,anchor='middle')=>t(x,y,v,29,'#fff',700,anchor);
+        const number=(x,y,v,size=61,anchor='middle')=>t(x,y,v,size,'#fff',900,anchor);
+        const trace=(x,y,w,h)=>`<g transform="translate(${x} ${y}) scale(${w/420} ${h/360})">${state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="420" height="360" preserveAspectRatio="xMidYMid meet"/>`:`<path d="${routeD}" fill="none" stroke="#FC4C02" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`}</g>`;
+        let art='';
+        if(variant===0) art=['Distance','Pace','Time'].map((title,i)=>`${label(360,250+i*150,title)}${number(360,319+i*150,value[i])}`).join('')+trace(190,750,340,142)+number(360,1035,'RUNRUN',62);
+        if(variant===1) art=`${label(360,206,'Distance')}${number(360,285,value[0],75)}${trace(105,415,510,210)}${label(200,754,'Pace')}${label(520,754,'Time')}${number(200,816,value[1],44)}${number(520,816,value[2],44)}${number(360,1060,'RUNRUN',62)}`;
+        if(variant===2) art=`${t(88,184,'RUN DATA',22,'#fff',700)}${['Distance','Pace','Time'].map((title,i)=>`${label(88,273+i*174,title,'start')}${number(88,340+i*174,value[i],67,'start')}`).join('')}${trace(190,823,440,165)}${number(88,1110,'RUNRUN',62,'start')}`;
+        return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="1280" viewBox="0 0 720 1280" role="img" aria-label="${esc(name)} story poster"><rect width="720" height="1280" fill="#000"/>${art}</svg>`;
+      }
       let s=frame(p,variant), x=variant===2?54:48;
       const foot=kicker(52,900,'MOVE DIFFERENT.  /  RUNRUN',p);
       if(layout===0) s+=`${brand(x,102,p)}${kicker(x,143,'RUN DATA / 12 OCT 2026',p)}${route(72,164,576,408,p,variant)}${statGrid(55,646,610,p,variant)}${foot}`;
@@ -157,7 +169,7 @@
     }
     function render() {
       const gallery=document.getElementById('gallery');
-      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / ${concepts.length}</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">Transparent · 1080 × 1440</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
+      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / ${concepts.length}</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">${c[3]===12?'Black · 1080 × 1920':'Transparent · 1080 × 1440'}</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
       if(document.getElementById('detail').open) updateDialog();
     }
     function updateDialog() { const i=state.selected; document.getElementById('detail-title').textContent=`${concepts[i][0]} / ${concepts[i][1]}`; const p=document.getElementById('detail-preview'); p.className=`preview surface-${state.surface}`; p.innerHTML=artwork(i); }
@@ -166,7 +178,7 @@
     function downloadSvg(i) { const blob=new Blob([svgText(i)],{type:'image/svg+xml;charset=utf-8'}); const url=URL.createObjectURL(blob); downloadUrl(url,`runrun-export-${concepts[i][0]}.svg`); setTimeout(()=>URL.revokeObjectURL(url),1000); }
     async function downloadPng(i) {
       const blob=new Blob([svgText(i)],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();
-      try { await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;}); const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1440;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,1080,1440);ctx.drawImage(img,0,0,1080,1440);const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!png)throw new Error('PNG conversion failed');const pngUrl=URL.createObjectURL(png);downloadUrl(pngUrl,`runrun-export-${concepts[i][0]}.png`);setTimeout(()=>URL.revokeObjectURL(pngUrl),1000); }
+      try { await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;}); const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=concepts[i][3]===12?1920:1440;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!png)throw new Error('PNG conversion failed');const pngUrl=URL.createObjectURL(png);downloadUrl(pngUrl,`runrun-export-${concepts[i][0]}.png`);setTimeout(()=>URL.revokeObjectURL(pngUrl),1000); }
       catch(e) { alert(`Could not export PNG: ${e.message}`); } finally { URL.revokeObjectURL(url); }
     }
     document.getElementById('gallery').addEventListener('click',e=>{const open=e.target.closest('[data-open]'),download=e.target.closest('[data-download]');if(open){state.selected=Number(open.dataset.open);updateDialog();document.getElementById('detail').showModal();}if(download)downloadPng(Number(download.dataset.download));});
