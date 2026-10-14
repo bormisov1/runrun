@@ -72,7 +72,7 @@
 <body>
   <main class="shell">
     <header class="top"><div class="brand">RUN<span>RUN</span></div><div class="top-right">Export design study / local only</div></header>
-    <section class="intro"><div><p class="eyebrow">Route PNG / 37 styles</p><h1>One run.<br>37 ways to show it.</h1></div><p>Compare route and stat layouts. The story posters use a black 9:16 canvas; the earlier styles remain transparent.</p></section>
+    <section class="intro"><div><p class="eyebrow">Route PNG / 43 styles</p><h1>One run.<br>43 ways to show it.</h1></div><p>Compare route and stat layouts. The story posters use a black 9:16 canvas; the earlier styles remain transparent.</p></section>
     <section class="toolbar" aria-label="Preview settings">
       <div class="toolbar-group"><span class="toolbar-label">Preview surface</span><div class="segmented" id="surfaces"><button type="button" data-surface="checker" aria-pressed="true">Grid</button><button type="button" data-surface="dark" aria-pressed="false">Dark</button><button type="button" data-surface="light" aria-pressed="false">Light</button><button type="button" data-surface="photo" aria-pressed="false">Photo</button></div></div>
       <label class="field"><span>Distance · km</span><input id="distance" value="12.48" maxlength="8"></label>
@@ -82,8 +82,8 @@
       <label class="upload">Upload route image<input id="route-file" type="file" accept="image/png,image/webp,image/svg+xml"></label>
       <span class="hint" id="route-hint">A sample route is shown until you choose a local image.</span>
     </section>
-    <div class="section-head"><h2>Explore the concepts</h2><span class="count">37 / 37</span></div>
-    <section class="grid" id="gallery" aria-label="Thirty-seven run export designs"></section>
+    <div class="section-head"><h2>Explore the concepts</h2><span class="count">43 / 43</span></div>
+    <section class="grid" id="gallery" aria-label="Forty-three run export designs"></section>
     <p class="footer">Sample run data for layout exploration. Story posters download at 1080 × 1920 with a black background; earlier designs download as transparent 1080 × 1440 PNGs.</p>
   </main>
   <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
@@ -104,7 +104,9 @@
       ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
       ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
       ['34','Clean Original','Essentials',11,0],
-      ['35','Night Run','Story Poster',12,0],['36','Night Run / Route','Story Poster',12,1],['37','Night Run / Split','Story Poster',12,2]
+      ['35','Night Run / Lime','Story Poster',12,0],['36','Night Run / Route / Lime','Story Poster',12,1],['37','Night Run / Split / Lime','Story Poster',12,2],
+      ['38','Night Run / Cyan','Story Poster',12,3],['39','Night Run / Route / Cyan','Story Poster',12,4],['40','Night Run / Split / Cyan','Story Poster',12,5],
+      ['41','Night Run / Coral','Story Poster',12,6],['42','Night Run / Route / Coral','Story Poster',12,7],['43','Night Run / Split / Coral','Story Poster',12,8]
     ];
     const palettes = [
       {ink:'#f5f7f0',accent:'#d8ff3e',second:'#56dce0'},
@@ -134,8 +136,9 @@
     function statGrid(x,y,w,p,variant,compact=false) { const d=data(); let out=''; const gap=variant===1?10:18; const cw=(w-gap)/2, rh=compact?102:139; d.forEach((_,i)=>{const sx=x+(i%2)*(cw+gap),sy=y+Math.floor(i/2)*rh; if(variant===1)out+=rect(sx,sy-55,cw,rh-10,'#071014',13,.72); if(variant===2)out+=line(sx,sy-47,sx+cw,sy-47,p.accent,2,.8); else out+=line(sx,sy-52,sx,sy+33,p.accent,3); out+=stat(sx+cw/2,sy,i,p,compact?35:44);}); return out; }
     function frame(p,variant) { return variant===0?'':variant===1?`<path d="M 42 130 V 42 H 155 M 565 42 H 678 V 140 M 42 808 V 918 H 152 M 565 918 H 678 V 810" fill="none" stroke="${p.accent}" stroke-width="3" opacity=".85"/>`:`${rect(28,28,664,904,'none',28,1,p.accent)}${line(45,82,675,82,p.accent,2,.6)}`; }
     function artwork(index) {
-      const [num,name,family,layout,variant]=concepts[index],p=palettes[variant];
+      const [num,name,family,layout,variant]=concepts[index],p=palettes[layout===12?Math.floor(variant/3):variant];
       if(layout===12) {
+        const posterLayout=variant%3;
         const durationParts=val('duration').split(':').map(Number);
         const posterDuration=durationParts.length===3 && durationParts.every(Number.isFinite)
           ? `${durationParts[0]?`${durationParts[0]}h `:''}${String(durationParts[1]+Math.round(durationParts[2]/60)).padStart(durationParts[0]?2:1,'0')}m`
@@ -146,13 +149,13 @@
         const trace=(x,y,w,h)=>{
           const padding=28,scale=Math.min((w-2*padding)/294,(h-2*padding)/235);
           const sampleTransform=`translate(${(w-294*scale)/2-74*scale} ${(h-235*scale)/2-58*scale}) scale(${scale})`;
-          return `<g transform="translate(${x} ${y})">${state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`:`<path d="${routeD}" transform="${sampleTransform}" fill="none" stroke="#FC4C02" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`}</g>`;
+          return `<g transform="translate(${x} ${y})">${state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`:`<path d="${routeD}" transform="${sampleTransform}" fill="none" stroke="${p.accent}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`}</g>`;
         };
         const logo=(x,y,w=360)=>`<image href="${posterLogoData}" x="${x}" y="${y}" width="${w}" height="${w*150/540}" preserveAspectRatio="xMidYMid meet"/>`;
         let art='';
-        if(variant===0) art=['Distance','Pace','Time'].map((title,i)=>`${label(360,250+i*150,title)}${number(360,319+i*150,value[i])}`).join('')+trace(60,690,600,260)+logo(180,965);
-        if(variant===1) art=`${label(360,206,'Distance')}${number(360,285,value[0],75)}${trace(60,350,600,325)}${label(200,754,'Pace')}${label(520,754,'Time')}${number(200,816,value[1],44)}${number(520,816,value[2],44)}${logo(180,990)}`;
-        if(variant===2) art=`${t(88,184,'RUN DATA',22,'#fff',700)}${['Distance','Pace','Time'].map((title,i)=>`${label(88,273+i*174,title,'start')}${number(88,340+i*174,value[i],67,'start')}`).join('')}${trace(70,750,580,285)}${logo(88,1040)}`;
+        if(posterLayout===0) art=['Distance','Pace','Time'].map((title,i)=>`${label(360,250+i*150,title)}${number(360,319+i*150,value[i])}`).join('')+trace(60,690,600,260)+logo(180,965);
+        if(posterLayout===1) art=`${label(360,206,'Distance')}${number(360,285,value[0],75)}${trace(60,350,600,325)}${label(200,754,'Pace')}${label(520,754,'Time')}${number(200,816,value[1],44)}${number(520,816,value[2],44)}${logo(180,990)}`;
+        if(posterLayout===2) art=`${t(88,184,'RUN DATA',22,'#fff',700)}${['Distance','Pace','Time'].map((title,i)=>`${label(88,273+i*174,title,'start')}${number(88,340+i*174,value[i],67,'start')}`).join('')}${trace(70,750,580,285)}${logo(88,1040)}`;
         return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="1280" viewBox="0 0 720 1280" role="img" aria-label="${esc(name)} story poster"><rect width="720" height="1280" fill="#000"/>${art}</svg>`;
       }
       let s=frame(p,variant), x=variant===2?54:48;
