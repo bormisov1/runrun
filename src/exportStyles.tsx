@@ -1,6 +1,6 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Image as SvgImage, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { clock, km, pace, routePath, Run, stats } from './run';
 
 export type ExportStyle = { id: string; name: string; family: string; layout: number; variant: number };
@@ -66,14 +66,21 @@ export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProp
     ];
     const label = (x: number, y: number, value: string, anchor: 'start' | 'middle' = 'middle') => txt(x, y, value, 29, white, anchor, '700');
     const number = (x: number, y: number, value: string, size = 61, anchor: 'start' | 'middle' = 'middle') => txt(x, y, value, size, white, anchor, '900');
-    const posterRoute = (x: number, y: number, w: number, h: number) => <G transform={`translate(${x} ${y}) scale(${w / 420} ${h / 360})`}><Path d={trace} fill="none" stroke={orange} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round"/></G>;
+    const posterRoute = (x: number, y: number, w: number, h: number) => {
+      const padding = 28;
+      const sampleScale = Math.min((w - 2 * padding) / 294, (h - 2 * padding) / 235);
+      const sampleTransform = `translate(${(w - 294 * sampleScale) / 2 - 74 * sampleScale} ${(h - 235 * sampleScale) / 2 - 58 * sampleScale}) scale(${sampleScale})`;
+      const path = run.points.length >= 2 ? routePath(run.points, w, h, padding) : trace;
+      return <G transform={`translate(${x} ${y})`}><Path d={path} transform={run.points.length >= 2 ? undefined : sampleTransform} fill="none" stroke={orange} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round"/></G>;
+    };
+    const posterLogo = (x: number, y: number, w = 360) => <SvgImage x={x} y={y} width={w} height={w * 150 / 540} href={require('../assets/watermark.png')} preserveAspectRatio="xMidYMid meet"/>;
     let content: React.ReactNode;
     if (style.variant === 0) {
-      content = <>{posterStats.map(([title, value], i) => <G key={title}>{label(360, 250 + i * 150, title)}{number(360, 319 + i * 150, value)}</G>)}{posterRoute(190, 750, 340, 142)}{number(360, 1035, 'RUNRUN', 62)}</>;
+      content = <>{posterStats.map(([title, value], i) => <G key={title}>{label(360, 250 + i * 150, title)}{number(360, 319 + i * 150, value)}</G>)}{posterRoute(60, 690, 600, 260)}{posterLogo(180, 965)}</>;
     } else if (style.variant === 1) {
-      content = <>{label(360, 206, 'Distance')}{number(360, 285, posterStats[0][1], 75)}{posterRoute(105, 415, 510, 210)}{label(200, 754, 'Pace')}{label(520, 754, 'Time')}{number(200, 816, posterStats[1][1], 44)}{number(520, 816, posterStats[2][1], 44)}{number(360, 1060, 'RUNRUN', 62)}</>;
+      content = <>{label(360, 206, 'Distance')}{number(360, 285, posterStats[0][1], 75)}{posterRoute(60, 350, 600, 325)}{label(200, 754, 'Pace')}{label(520, 754, 'Time')}{number(200, 816, posterStats[1][1], 44)}{number(520, 816, posterStats[2][1], 44)}{posterLogo(180, 990)}</>;
     } else {
-      content = <>{txt(88, 184, date, 22, white, 'start', '700')}{posterStats.map(([title, value], i) => <G key={title}>{label(88, 273 + i * 174, title, 'start')}{number(88, 340 + i * 174, value, 67, 'start')}</G>)}{posterRoute(190, 823, 440, 165)}{number(88, 1110, 'RUNRUN', 62, 'start')}</>;
+      content = <>{txt(88, 184, date, 22, white, 'start', '700')}{posterStats.map(([title, value], i) => <G key={title}>{label(88, 273 + i * 174, title, 'start')}{number(88, 340 + i * 174, value, 67, 'start')}</G>)}{posterRoute(70, 750, 580, 285)}{posterLogo(88, 1040)}</>;
     }
     return <Svg width={width} height={artHeight} viewBox="0 0 720 1280" accessibilityLabel={`${style.name} black story poster with route and run statistics`}><Rect x={0} y={0} width={720} height={1280} fill="#000000"/>{content}</Svg>;
   }
