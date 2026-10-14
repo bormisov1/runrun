@@ -474,7 +474,7 @@ function Main() {
         <ScrollView contentContainerStyle={st.detailContent}><Text style={st.kicker}>LAST 24 HOURS</Text><Text style={st.detailTitle}>MAKE AN{'\n'}ACTIVITY.</Text>
           {recentSource && <RunMap original={recentSource} selected={recentDraft ?? recentSource} time={Math.max(recentStart, Math.min(recentPreview, recentEnd))} height={280}/>}
           {recentSource && <View style={st.cropCard}><View style={st.cropRow}><Text style={st.cropTitle}>CHOOSE A FRAGMENT</Text><Text style={st.cropTime}>{clock(Math.max(0, (recentEnd - recentStart) / 1000))}</Text></View>
-            <Text style={st.cropHint}>Drag the handles to choose any fragment still available in the last 24 hours. The playhead previews your path.</Text>
+            <Text style={st.cropHint}>Drag the handles to choose any fragment still available in the last 24 hours. Hold a handle for precise movement. The playhead previews your path.</Text>
             <RunTrimmer minimum={Math.max(recentSource.startedAt, now - RECENT_WINDOW_MS)} maximum={recentSource.endedAt ?? now} start={recentStart} end={recentEnd} onStartChange={setRecentStart} onEndChange={setRecentEnd} onPreview={setRecentPreview}/>
             <View style={st.cropRow}><Text style={st.cropBoundary}>START  {new Date(recentStart).toLocaleString()}</Text><Text style={st.cropBoundary}>FINISH  {new Date(recentEnd).toLocaleString()}</Text></View>
             <RunPlayhead start={recentStart} end={recentEnd} value={Math.max(recentStart, Math.min(recentPreview, recentEnd))} onChange={setRecentPreview}/>
