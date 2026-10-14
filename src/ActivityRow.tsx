@@ -3,28 +3,36 @@ import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { clock, km, Run, stats } from './run';
 import { c, st } from './styles';
+import { ARCHIVE_ACTION_WIDTH, archiveSwipeOutcome } from './archiveSwipe';
 
-export function ActivityRow({ run, index, onOpen, onArchive }: {
-  run: Run; index: number; onOpen: () => void; onArchive: () => void;
+export function ActivityRow({ run, index, onOpen, onArchive, onSwipeChange }: {
+  run: Run; index: number; onOpen: () => void; onArchive: () => void; onSwipeChange: (active: boolean) => void;
 }) {
   const offset = useRef(new Animated.Value(0)).current;
   const open = useRef(false);
   const start = useRef(0);
+  const width = useRef(320);
   const settle = (show: boolean) => {
     open.current = show;
-    Animated.spring(offset, { toValue: show ? -96 : 0, useNativeDriver: true, bounciness: 0 }).start();
+    Animated.spring(offset, { toValue: show ? -ARCHIVE_ACTION_WIDTH : 0, useNativeDriver: true, bounciness: 0 }).start();
   };
   const pan = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
-    onPanResponderGrant: () => { start.current = open.current ? -96 : 0; offset.stopAnimation(); },
-    onPanResponderMove: (_, gesture) => offset.setValue(Math.max(-96, Math.min(0, start.current + gesture.dx))),
-    onPanResponderRelease: (_, gesture) => settle(start.current + gesture.dx < -48),
-    onPanResponderTerminate: () => settle(open.current),
-  }), [offset]);
+    onMoveShouldSetPanResponderCapture: (_, gesture) => Math.abs(gesture.dx) > 5 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.1 && (gesture.dx < 0 || open.current),
+    onPanResponderGrant: () => { start.current = open.current ? -ARCHIVE_ACTION_WIDTH : 0; offset.stopAnimation(); onSwipeChange(true); },
+    onPanResponderMove: (_, gesture) => offset.setValue(Math.max(-width.current, Math.min(0, start.current + gesture.dx))),
+    onPanResponderRelease: (_, gesture) => {
+      onSwipeChange(false);
+      const outcome = archiveSwipeOutcome(start.current, gesture.dx, gesture.vx, width.current);
+      if (outcome === 'archive') onArchive();
+      else settle(outcome === 'open');
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () => { onSwipeChange(false); settle(open.current); },
+  }), [offset, onArchive, onSwipeChange]);
   const data = stats(run);
-  return <View style={{ borderRadius: 19, marginBottom: 10, overflow: 'hidden', backgroundColor: c.panel }}>
+  return <View onLayout={event => { width.current = event.nativeEvent.layout.width; }} style={{ borderRadius: 19, marginBottom: 10, overflow: 'hidden', backgroundColor: '#58636C' }}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Archive activity from ${new Date(run.startedAt).toLocaleDateString()}`} onPress={onArchive}
-      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 96, backgroundColor: '#58636C', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: ARCHIVE_ACTION_WIDTH, backgroundColor: '#58636C', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
       <Ionicons name="archive-outline" size={22} color={c.white}/><Text style={{ color: c.white, fontSize: 11, fontWeight: '700' }}>Archive</Text>
     </Pressable>
     <Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: offset }] }}>
