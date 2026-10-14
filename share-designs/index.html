@@ -86,7 +86,7 @@
     <section class="grid" id="gallery" aria-label="Thirty-seven run export designs"></section>
     <p class="footer">Sample run data for layout exploration. Story posters download at 1080 × 1920 with a black background; earlier designs download as transparent 1080 × 1440 PNGs.</p>
   </main>
-  <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download transparent PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
+  <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
   <script>
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const routeD = 'M 74 293 C 98 281 122 277 137 255 S 136 216 169 210 C 207 204 197 170 175 163 S 129 152 146 125 C 165 94 191 105 198 82 S 226 58 244 75 C 266 95 276 117 302 119 S 329 145 311 165 C 289 191 267 182 274 213 S 307 260 324 246 C 346 228 354 196 368 170';
@@ -135,7 +135,11 @@
     function artwork(index) {
       const [num,name,family,layout,variant]=concepts[index],p=palettes[variant];
       if(layout===12) {
-        const value=[`${val('distance')} km`,`${val('pace')} /km`,val('duration')];
+        const durationParts=val('duration').split(':').map(Number);
+        const posterDuration=durationParts.length===3 && durationParts.every(Number.isFinite)
+          ? `${durationParts[0]?`${durationParts[0]}h `:''}${String(durationParts[1]+Math.round(durationParts[2]/60)).padStart(durationParts[0]?2:1,'0')}m`
+          : val('duration');
+        const value=[`${val('distance')} km`,`${val('pace')} /km`,posterDuration];
         const label=(x,y,v,anchor='middle')=>t(x,y,v,29,'#fff',700,anchor);
         const number=(x,y,v,size=61,anchor='middle')=>t(x,y,v,size,'#fff',900,anchor);
         const trace=(x,y,w,h)=>`<g transform="translate(${x} ${y}) scale(${w/420} ${h/360})">${state.routeImage?`<image href="${state.routeImage}" x="0" y="0" width="420" height="360" preserveAspectRatio="xMidYMid meet"/>`:`<path d="${routeD}" fill="none" stroke="#FC4C02" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`}</g>`;
