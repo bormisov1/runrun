@@ -6,7 +6,7 @@ Dark running tracker built with Expo / React Native.
 
 ## Transparent export design gallery
 
-Open [share-designs/index.html](share-designs/index.html) in a browser to compare all 37 route PNG styles. Edit the four sample run values, upload a route image, and download any design as a PNG or SVG. The three story poster styles use a black 9:16 canvas; the earlier styles remain transparent. The same styles are available in the app, where Settings saves the default export style.
+Open [share-designs/index.html](share-designs/index.html) in a browser to compare all 43 route PNG styles. Edit the four sample run values, upload a route image, and download any design as a PNG or SVG. The nine story poster styles pair three layouts with lime, cyan, and coral routes on a black 9:16 canvas; the earlier styles remain transparent. The same styles are available in the app, where Settings saves the default export style.
 
 ## Run locally
 

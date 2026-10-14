@@ -17,7 +17,9 @@ export const EXPORT_STYLES: ExportStyle[] = [
   ['28','Edge Runner','Experimental',9,0],['29','Pulse','Experimental',9,1],['30','Full Trace','Experimental',9,2],
   ['31','Bare Trace','Minimal',10,0],['32','Distance Only','Minimal',10,1],['33','Quiet Line','Minimal',10,2],
   ['34','Clean Original','Essentials',11,0],
-  ['35','Night Run','Story Poster',12,0],['36','Night Run / Route','Story Poster',12,1],['37','Night Run / Split','Story Poster',12,2],
+  ['35','Night Run / Lime','Story Poster',12,0],['36','Night Run / Route / Lime','Story Poster',12,1],['37','Night Run / Split / Lime','Story Poster',12,2],
+  ['38','Night Run / Cyan','Story Poster',12,3],['39','Night Run / Route / Cyan','Story Poster',12,4],['40','Night Run / Split / Cyan','Story Poster',12,5],
+  ['41','Night Run / Coral','Story Poster',12,6],['42','Night Run / Route / Coral','Story Poster',12,7],['43','Night Run / Split / Coral','Story Poster',12,8],
 ].map(([id,name,family,layout,variant]) => ({ id: String(id), name: String(name), family: String(family), layout: Number(layout), variant: Number(variant) }));
 export const DEFAULT_EXPORT_STYLE = '01';
 export const isStoryPoster = (id: string) => findExportStyle(id).layout === 12;
@@ -37,7 +39,7 @@ export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProp
   const style = findExportStyle(styleId);
   const poster = style.layout === 12;
   const artHeight = height ?? (poster ? width * 16 / 9 : width * 4 / 3);
-  const p = palettes[style.variant];
+  const p = palettes[poster ? Math.floor(style.variant / 3) : style.variant];
   const s = stats(run);
   const values = [km(s.distance), clock(s.seconds), pace(s.avgSpeed), `+${Math.round(s.ascent)}`];
   const labels = ['DISTANCE', 'DURATION', 'AVG PACE', 'ELEVATION'];
@@ -55,8 +57,8 @@ export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProp
   const grid = (x: number, y: number, gapX = 310, gapY = 140) => [0,1,2,3].map(i => stat(i,x+(i%2)*gapX,y+Math.floor(i/2)*gapY,42));
   const date = new Date(run.startedAt).toLocaleDateString(undefined, { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
   if (poster) {
-    const orange = '#FC4C02';
     const white = '#FFFFFF';
+    const posterLayout = style.variant % 3;
     const totalMinutes = Math.round(s.seconds / 60);
     const duration = totalMinutes >= 60 ? `${Math.floor(totalMinutes / 60)}h ${String(totalMinutes % 60).padStart(2, '0')}m` : `${totalMinutes}m`;
     const posterStats = [
@@ -71,13 +73,13 @@ export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProp
       const sampleScale = Math.min((w - 2 * padding) / 294, (h - 2 * padding) / 235);
       const sampleTransform = `translate(${(w - 294 * sampleScale) / 2 - 74 * sampleScale} ${(h - 235 * sampleScale) / 2 - 58 * sampleScale}) scale(${sampleScale})`;
       const path = run.points.length >= 2 ? routePath(run.points, w, h, padding) : trace;
-      return <G transform={`translate(${x} ${y})`}><Path d={path} transform={run.points.length >= 2 ? undefined : sampleTransform} fill="none" stroke={orange} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round"/></G>;
+      return <G transform={`translate(${x} ${y})`}><Path d={path} transform={run.points.length >= 2 ? undefined : sampleTransform} fill="none" stroke={p.accent} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round"/></G>;
     };
     const posterLogo = (x: number, y: number, w = 360) => <SvgImage x={x} y={y} width={w} height={w * 150 / 540} href={require('../assets/watermark.png')} preserveAspectRatio="xMidYMid meet"/>;
     let content: React.ReactNode;
-    if (style.variant === 0) {
+    if (posterLayout === 0) {
       content = <>{posterStats.map(([title, value], i) => <G key={title}>{label(360, 250 + i * 150, title)}{number(360, 319 + i * 150, value)}</G>)}{posterRoute(60, 690, 600, 260)}{posterLogo(180, 965)}</>;
-    } else if (style.variant === 1) {
+    } else if (posterLayout === 1) {
       content = <>{label(360, 206, 'Distance')}{number(360, 285, posterStats[0][1], 75)}{posterRoute(60, 350, 600, 325)}{label(200, 754, 'Pace')}{label(520, 754, 'Time')}{number(200, 816, posterStats[1][1], 44)}{number(520, 816, posterStats[2][1], 44)}{posterLogo(180, 990)}</>;
     } else {
       content = <>{txt(88, 184, date, 22, white, 'start', '700')}{posterStats.map(([title, value], i) => <G key={title}>{label(88, 273 + i * 174, title, 'start')}{number(88, 340 + i * 174, value, 67, 'start')}</G>)}{posterRoute(70, 750, 580, 285)}{posterLogo(88, 1040)}</>;
