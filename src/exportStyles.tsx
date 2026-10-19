@@ -84,7 +84,7 @@ export function ExportArtwork({ run, styleId, width = 360, height }: ArtworkProp
     } else {
       content = <>{txt(88, 184, date, 22, white, 'start', '700')}{posterStats.map(([title, value], i) => <G key={title}>{label(88, 273 + i * 174, title, 'start')}{number(88, 340 + i * 174, value, 67, 'start')}</G>)}{posterRoute(70, 750, 580, 285)}{posterLogo(88, 1040)}</>;
     }
-    return <Svg width={width} height={artHeight} viewBox="0 0 720 1280" accessibilityLabel={`${style.name} black story poster with route and run statistics`}><Rect x={0} y={0} width={720} height={1280} fill="#000000"/>{content}</Svg>;
+    return <Svg width={width} height={artHeight} viewBox="0 0 720 1280" accessibilityLabel={`${style.name} transparent story poster with route and run statistics`}>{content}</Svg>;
   }
   let art: React.ReactNode;
   switch (style.layout) {
