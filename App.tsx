@@ -517,7 +517,7 @@ function Main() {
           </View>
           <Trends run={draft}/>
           <Pressable accessibilityRole="button" accessibilityLabel="Choose export style" style={st.cropCard} onPress={() => setStylePicker('export')}><View style={st.cropRow}><View><Text style={st.cropTitle}>EXPORT STYLE</Text><Text style={st.cropHint}>{findExportStyle(exportStyle).id} / {findExportStyle(exportStyle).name}</Text></View><Icon name="chevron-forward" color={c.lime}/></View></Pressable>
-          <Pressable style={st.shareButton} onPress={() => share(draft, true)}><Icon name="download-outline" color={c.bg}/><Text style={st.shareText}>{isStoryPoster(exportStyle) ? 'SAVE STORY POSTER PNG' : 'SAVE TRANSPARENT ROUTE PNG'}</Text></Pressable>
+          <Pressable style={st.shareButton} onPress={() => share(draft, true)}><Icon name="download-outline" color={c.bg}/><Text style={st.shareText}>SAVE TRANSPARENT ROUTE PNG</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => share(draft)}><Icon name="share-social-outline" color={c.white}/><Text style={st.gpxText}>SHARE ROUTE PNG</Text></Pressable>
           <Pressable style={st.gpxButton} onPress={() => exportGpx(draft).catch(e => setError(e instanceof Error ? e.message : 'Could not export GPX'))}><Icon name="download-outline" color={c.white}/><Text style={st.gpxText}>EXPORT GPX DATA</Text></Pressable>
         </ScrollView>}
@@ -525,7 +525,7 @@ function Main() {
       </SafeAreaView></SafeAreaProvider>
     </Modal>
     <Camera visible={cameraOpen} onClose={() => setCameraOpen(false)} onError={setError}/>
-    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={[st.shareCanvas, isStoryPoster(exportStyle) && { height: 640, backgroundColor: '#000000' }]}><ExportArtwork run={shareRun} styleId={exportStyle}/></View></View>}
+    {shareRun && <View pointerEvents="none" style={st.offscreen}><View ref={shareRef} collapsable={false} style={[st.shareCanvas, isStoryPoster(exportStyle) && { height: 640 }]}><ExportArtwork run={shareRun} styleId={exportStyle}/></View></View>}
   </SafeAreaView>;
 }
 

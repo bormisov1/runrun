@@ -72,7 +72,7 @@
 <body>
   <main class="shell">
     <header class="top"><div class="brand">RUN<span>RUN</span></div><div class="top-right">Export design study / local only</div></header>
-    <section class="intro"><div><p class="eyebrow">Route PNG / 43 styles</p><h1>One run.<br>43 ways to show it.</h1></div><p>Compare route and stat layouts. The story posters use a black 9:16 canvas; the earlier styles remain transparent.</p></section>
+    <section class="intro"><div><p class="eyebrow">Route PNG / 43 styles</p><h1>One run.<br>43 ways to show it.</h1></div><p>Compare route and stat layouts. Every design exports with a transparent background, including the 9:16 story posters.</p></section>
     <section class="toolbar" aria-label="Preview settings">
       <div class="toolbar-group"><span class="toolbar-label">Preview surface</span><div class="segmented" id="surfaces"><button type="button" data-surface="checker" aria-pressed="true">Grid</button><button type="button" data-surface="dark" aria-pressed="false">Dark</button><button type="button" data-surface="light" aria-pressed="false">Light</button><button type="button" data-surface="photo" aria-pressed="false">Photo</button></div></div>
       <label class="field"><span>Distance · km</span><input id="distance" value="12.48" maxlength="8"></label>
@@ -84,7 +84,7 @@
     </section>
     <div class="section-head"><h2>Explore the concepts</h2><span class="count">43 / 43</span></div>
     <section class="grid" id="gallery" aria-label="Forty-three run export designs"></section>
-    <p class="footer">Sample run data for layout exploration. Story posters download at 1080 × 1920 with a black background; earlier designs download as transparent 1080 × 1440 PNGs.</p>
+    <p class="footer">Sample run data for layout exploration. Every PNG has a transparent background; story posters download at 1080 × 1920 and earlier designs at 1080 × 1440.</p>
   </main>
   <dialog id="detail"><div class="dialog-head"><strong id="detail-title"></strong><button id="close-detail" type="button" aria-label="Close preview">×</button></div><div id="detail-preview" class="preview surface-checker"></div><div class="dialog-foot"><button id="detail-png" type="button">Download PNG</button><button id="detail-svg" type="button">Download SVG</button></div></dialog>
   <script>
@@ -156,7 +156,7 @@
         if(posterLayout===0) art=['Distance','Pace','Time'].map((title,i)=>`${label(360,250+i*150,title)}${number(360,319+i*150,value[i])}`).join('')+trace(60,690,600,260)+logo(180,965);
         if(posterLayout===1) art=`${label(360,206,'Distance')}${number(360,285,value[0],75)}${trace(60,350,600,325)}${label(200,754,'Pace')}${label(520,754,'Time')}${number(200,816,value[1],44)}${number(520,816,value[2],44)}${logo(180,990)}`;
         if(posterLayout===2) art=`${t(88,184,'RUN DATA',22,'#fff',700)}${['Distance','Pace','Time'].map((title,i)=>`${label(88,273+i*174,title,'start')}${number(88,340+i*174,value[i],67,'start')}`).join('')}${trace(70,750,580,285)}${logo(88,1040)}`;
-        return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="1280" viewBox="0 0 720 1280" role="img" aria-label="${esc(name)} story poster"><rect width="720" height="1280" fill="#000"/>${art}</svg>`;
+        return `<svg xmlns="${SVG_NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="720" height="1280" viewBox="0 0 720 1280" role="img" aria-label="${esc(name)} transparent story poster">${art}</svg>`;
       }
       let s=frame(p,variant), x=variant===2?54:48;
       const foot=kicker(52,900,'MOVE DIFFERENT.  /  RUNRUN',p);
@@ -182,7 +182,7 @@
     }
     function render() {
       const gallery=document.getElementById('gallery');
-      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / ${concepts.length}</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">${c[3]===12?'Black · 1080 × 1920':'Transparent · 1080 × 1440'}</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
+      gallery.innerHTML=concepts.map((c,i)=>`<article class="card"><div class="card-head"><span class="card-num">${c[0]} / ${concepts.length}</span><span class="card-family">${esc(c[2])}</span></div><div class="preview surface-${state.surface}" data-preview="${i}">${artwork(i)}</div><div class="card-foot"><div><div class="card-title">${esc(c[1])}</div><div class="card-sub">Transparent · ${c[3]===12?'1080 × 1920':'1080 × 1440'}</div></div><div class="card-actions"><button type="button" class="icon-btn" data-open="${i}" aria-label="Enlarge ${esc(c[1])}">↗</button><button type="button" class="icon-btn" data-download="${i}" aria-label="Download ${esc(c[1])} PNG">↓</button></div></div></article>`).join('');
       if(document.getElementById('detail').open) updateDialog();
     }
     function updateDialog() { const i=state.selected; document.getElementById('detail-title').textContent=`${concepts[i][0]} / ${concepts[i][1]}`; const p=document.getElementById('detail-preview'); p.className=`preview surface-${state.surface}`; p.innerHTML=artwork(i); }
